@@ -234,6 +234,7 @@ Si chrome-devtools indispo : kill du chrome existant + suppression `SingletonLoc
 - [ ] **Pages flow sous `flows/<flow>/<page>.html`** — pas de fichier `Flow NN.html` à la racine
 - [ ] **Pas de `<pre><code>` ajouté** dans la doc UI Kit
 - [ ] **Copy cohérent** avec le ton existant (formel/familier)
+- [ ] **Aucun terme technique dans la copy** ajoutée/modifiée : pas de nom de modèle IA (Sonnet/Opus/GPT…), pas de provider (Groq/RevenueCat/Anthropic…), pas d'acronyme infra (OCR/ASR/LLM/SDK/JWT…). Préférer les termes métier ("scans photo" pas "scans IA Sonnet 4.6", "synchro" pas "WebSocket sync").
 - [ ] **Accessibilité** : contrastes, tailles, hit zones
 
 ## 🔧 Recettes courantes
@@ -547,6 +548,7 @@ Checklist agnostique du produit :
 - [ ] Zéro font icon
 - [ ] Tous les écrans ont des métadonnées (id, description, tag)
 - [ ] Copy cohérent (formel/familier, longueur)
+- [ ] **Aucun terme technique dans la copy user-facing** : pas de nom de modèle IA (Sonnet, GPT, Claude…), pas de provider (Groq, Anthropic, OpenAI, RevenueCat…), pas d'acronyme tech (OCR, ASR, LLM, JWT, API, SDK…). Grep `Sonnet|Opus|Haiku|GPT|Groq|Anthropic|OpenAI|RevenueCat|OCR|ASR|LLM|JWT|SDK` dans les fichiers `flows/**/*.html` et `UI Kit.html` → 0 match dans du texte visible. Termes commerciaux d'OS/store autorisés (App Store, Google Play, iCloud, Apple Pay, Sign in with Apple).
 - [ ] Pas de texte < taille minimum définie par le DS
 - [ ] Contrastes conformes niveau d'accessibilité cible
 - [ ] Hit targets ≥ 44×44 sur mobile
@@ -560,6 +562,7 @@ Checklist agnostique du produit :
 3. **Hardcoder des valeurs** au lieu d'utiliser les tokens
 4. **Remplacer un écran approuvé** sans garder l'original (faire variante)
 5. **Ajouter un emoji** dans l'UI (exceptions rares, demander avant)
+5b. **Faire fuiter la stack technique dans les copy user-facing** — aucun nom de modèle IA (Sonnet, Opus, Haiku, GPT-4, Claude 4.6…), aucun nom de provider (OpenAI, Anthropic, Groq, RevenueCat, Supabase…), aucun acronyme tech (OCR, ASR, LLM, API, SDK, JWT…), aucun nom interne d'endpoint, queue, service. L'utilisateur ne doit voir que des termes métier : "scans photo" pas "scans IA (Sonnet 4.6)" — "synchro" pas "WebSocket sync" — "compte" pas "JWT session". Les noms commerciaux d'OS / store sont OK (App Store, Google Play, iCloud, Apple Pay, Sign in with Apple) — c'est ce que l'utilisateur connaît. À chaque copy ajoutée ou modifiée : grep ce qui ressemble à un identifiant technique et neutralise. Les attributs `data-uses="native:..."` / `data-uses="ui:..."` (eux machine-readable) restent inchangés — l'interdiction porte uniquement sur le **texte visible**.
 6. **Utiliser un font icon** — SVG inline uniquement
 7. **Inliner un SVG d'icône sans `data-asset`** — perte de traçabilité pour les outils de code-gen. Toujours `data-asset="ds/assets/icons/<name>.svg"` qui pointe vers le fichier source.
 8. **Référencer un sprite externe** (`<use href="ds/assets/icons/icons.svg#…"/>`) — cassé en file://, ce pattern est banni
