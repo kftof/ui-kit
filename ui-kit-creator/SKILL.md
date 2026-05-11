@@ -1264,12 +1264,27 @@ Génère le code <framework> (Flutter / SwiftUI / Compose / React / Vue) pour la
 - Préciser dans `CLAUDE_SKILLS.md` les noms de flows/pages réels du projet (pas `<page-name>`)
 - Si le projet a un widget wrapper spécifique (`IconView`, `ImageView`, `MediaPicker`…), le mentionner dans `GUIDELINES.md` § Conventions sémantiques
 
+## 📐 Playbooks de stratégie — à consulter selon le scope du kit
+
+Le repo `ui-kit` inclut un dossier `playbooks/` à la racine avec 3 doctrines actionables. À lire **avant** de générer les écrans concernés, pour appliquer les principes de conversion / engagement / différenciation directement dans le markup :
+
+| Playbook | À consulter quand le kit contient… | Règles clés |
+|---|---|---|
+| `playbooks/01-onboarding-paywall.md` | Un flow `onboarding` et/ou un écran `paywall` | Structure 3 actes (problème → climax → paywall), questions personnelles à auto-conviction, effet miroir, aversion à la perte (onboarding long 10-15 min), Weekly+Annual sans lifetime, trial 3j, rappel J-1, preuve sociale |
+| `playbooks/02-engagement-virality.md` | Un flow d'usage principal (core loop), écrans de résultat, settings, history/collection | Accès direct à la fonctionnalité phare (pas de hub), sharable moments brandés, demande d'avis au pic émotionnel, progression / streaks, settings standardisés |
+| `playbooks/03-conversion-psychology.md` | Tout kit qui vise une conversion App Store (≈ tous les kits mobile) | Personnalisation visuelle (effet miroir), Aha moment en typo display, captures App Store axées bénéfice, Custom Product Pages par mot-clé, sortie du "AI slope" via signe distinctif, mapping niche → palette/typo |
+
+**Règle d'usage** : à l'étape de planification (avant l'écriture des écrans concernés), lire le playbook pertinent puis appliquer ses règles **mécaniquement** dans la composition des cells. Chaque playbook se termine par une table "Critères d'audit machine-readable" — utilisée par `ui-kit-audit` pour évaluer le kit a posteriori. **Concevoir directement pass-par-construction** plutôt que d'auditer puis corriger.
+
+**Skill complémentaire** : `ui-kit-audit` peut être invoqué après création pour vérifier qu'un kit respecte les critères. Itération typique : créer → audit → corriger fails via `ui-kit-editor` → re-audit.
+
 ## ✅ Workflow de création
 
 L'ordre est strict — le DS doit exister **avant** que le premier Flow soit écrit.
 
 1. **Poser les 10 questions** (ou valider les infos fournies)
 2. **Proposer 3 directions visuelles** en 2 phrases chacune (ton, palette, typo) — faire choisir
+2.5. **Consulter les playbooks pertinents** selon le scope déclaré aux étapes 1-2 (onboarding ? paywall ? core loop ? écran de fierté sharable ?). Lire `playbooks/0X-*.md` pertinents pour internaliser les règles **avant** d'écrire les écrans concernés.
 3. **Créer `ds/tokens.css`** complet (couleurs, type, spacing, radii, shadows, motion). Pour les fonts : déclarer les variables (`--font-display`, `--font-body`) et l'échelle, MAIS pas encore les `@font-face` — ils sont écrits à l'étape 3.5 après le téléchargement des fichiers.
 
 3.5. **Télécharger les fonts dans `ds/assets/fonts/<font>/` (woff2 + ttf)** — étape obligatoire. Le mockup HTML utilise woff2 (léger), Flutter / iOS native / Android native exigent du ttf. Ship les **deux formats** depuis la source officielle, **jamais** `@import` Google Fonts CDN dans un kit livré (force dev à dépendre de la CDN, casse offline, Flutter ne lit pas le woff2).

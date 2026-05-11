@@ -101,6 +101,11 @@ Avant toute modif, **lire le kit** pour extraire :
 9. **Structure de fichier** : comment les écrans sont organisés (cellules, canvas, sections…)
 10. **Règles implicites** : lire GUIDELINES si présent, sinon inférer en observant
 11. **`Prototype.html` éventuellement présent** à la racine : c'est un fichier généré par le skill `ui-kit-prototype`. Ne pas l'éditer à la main. Après la modif courante, signaler à l'utilisateur de re-générer (`ui-kit-prototype` à invoquer) si la modif a touché un Flow.
+12. **`Audit.md` éventuellement présent** à la racine : c'est un rapport produit par `ui-kit-audit`. Si présent, le **lire avant de modifier** — il liste les fails stratégiques (onboarding, paywall, viralité, conversion) à corriger. Si la modif demandée n'est pas dans le rapport, proposer à l'utilisateur de re-invoquer `ui-kit-audit` après pour vérifier qu'on n'a pas régressé. Si la modif demandée est de fixer un fail de l'audit : pointer le critère (ex: `OB-2`) dans le commit message pour traçabilité.
+
+### Playbooks de stratégie
+
+Le repo `ui-kit` inclut `playbooks/01-onboarding-paywall.md`, `playbooks/02-engagement-virality.md`, `playbooks/03-conversion-psychology.md` — doctrines actionables sur les flows critiques (onboarding, paywall, sharable moments, demande d'avis, settings standardisés, psychologie de conversion). À consulter quand la modif touche un de ces flows pour appliquer / préserver les règles. Le skill complémentaire `ui-kit-audit` produit un rapport `Audit.md` qui évalue le kit contre ces playbooks — invoquer avant ET après les modifs stratégiques pour mesurer l'impact.
 
 Ne jamais sauter cette phase. Les erreurs les plus courantes viennent de suppositions sur ce qui existe déjà dans `ds/`.
 
@@ -473,6 +478,34 @@ Cas typique : `tokens.css` commence par `@import url('https://fonts.googleapis.c
 10. **Screenshot viewport-by-viewport** chaque page touchée + vérifier zéro régression.
 
 **Note** : cette recette est purement additive. Elle n'enlève rien d'existant sauf les `data-asset` parasites sur le chrome système. Le rendu visuel reste identique avant/après.
+
+### Fixer les fails d'un `Audit.md` (playbooks de stratégie)
+
+À invoquer après que `ui-kit-audit` ait produit un `Audit.md` à la racine du kit avec des critères en `fail`. Cette recette applique les fixes ordonnés par impact.
+
+**Workflow strict** :
+
+1. **Lire `Audit.md`** à la racine du kit. Identifier la section "Recommandations prioritaires" (liste ordonnée) et la table détaillée par critère.
+
+2. **Pour chaque fail à fixer**, charger le playbook source pour lire la règle complète :
+   - Critères `OB-*` / `PW-*` → `playbooks/01-onboarding-paywall.md`
+   - Critères `CL-*` / `SH-*` / `RV-*` / `PR-*` / `RM-*` → `playbooks/02-engagement-virality.md`
+   - Critères `OB-V*` / `CV-*` / `DIFF-*` / `PA-*` → `playbooks/03-conversion-psychology.md`
+
+3. **Appliquer le fix** en modifiant les cells / écrans concernés. Suivre les phases 2, 3, 4 du workflow standard (validation visuelle, screenshot viewport-by-viewport). Ne fixer qu'**un fail à la fois** pour traçabilité — pas de fix groupé.
+
+4. **Commit message** : référencer le critère du playbook fixé. Format suggéré : `fix(onboarding): OB-2 — ajouter Aha moment écran 2` ou `fix(paywall): PW-4 — toggle rappel J-1 ajouté`.
+
+5. **Re-invoquer `ui-kit-audit`** après le fix pour vérifier que le critère passe désormais et qu'on n'a pas régressé sur un autre. Diff git de `Audit.md` doit montrer le critère passer de `❌ fail` à `✅ pass`.
+
+**Cas particulier — fails non auditables automatiquement** : la section "Critères non auditables automatiquement" du rapport liste les critères que `ui-kit-audit` n'a pas pu évaluer mécaniquement. Pour ces critères, les fixes nécessitent un jugement humain (ex: "palette générique AI slope ?" → décision design, pas grep). Discuter avec l'utilisateur avant d'agir.
+
+**Ordre de priorité recommandé pour les fixes** :
+1. Fails du playbook 1 sur onboarding (impact direct conversion paywall)
+2. Fails du playbook 1 sur paywall (impact direct MRR)
+3. Fails du playbook 3 sur Aha moment / effet miroir (impact onboarding)
+4. Fails du playbook 2 sur sharable moments (viralité gratuite)
+5. Le reste (settings, collection, etc.)
 
 ### Migrer un widget redéfini localement vers le catalogue
 
