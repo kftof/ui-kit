@@ -98,7 +98,70 @@ Règles **actionables**, numérotées pour référence directe.
 
 ---
 
-## 5. Rétention & Maintenance "boring"
+## 5. Hook Model — boucle d'habitude complète
+
+Cadre théorique structurant pour designer une boucle d'engagement répétée qui transforme l'usage occasionnel en habitude. Synthèse du modèle de Nir Eyal ("Hooked"), enrichie du Fogg Behavior Model. Les §1-4 ci-dessus traitent des composants ; cette section les **articule en boucle**.
+
+Une boucle complète = 4 phases enchaînées. Si une phase manque ou est faible, la boucle ne se forme pas → l'utilisateur churn après quelques sessions.
+
+### 5.1 Phase 1 — Trigger (déclencheur)
+- **Triggers externes** : éléments qui ramènent l'utilisateur dans l'app depuis l'extérieur
+  - Push notification (la plus directe — à manier avec parcimonie pour éviter le ratio de désinstallation)
+  - Email transactionnel (résumé hebdo, milestone atteint)
+  - Badge sur l'icône d'app
+  - Widget home screen iOS / Android
+  - Live Activity (iOS Dynamic Island) pour les opérations en cours
+- **Triggers internes** : émotion / état mental qui pousse l'utilisateur à ouvrir l'app **sans rappel externe**
+  - Émotion source typique : ennui (TikTok), anxiété (méditation), FOMO (réseaux sociaux), curiosité (news), accomplissement (fitness tracker), connexion (chat)
+  - L'objectif design : **mapper l'émotion source du user** et structurer le core loop pour la résoudre rapidement
+  - Une app qui n'a que des triggers externes ne devient jamais une habitude
+- **Transition externe → interne** : c'est le but à 3-6 mois d'usage. Si l'utilisateur n'ouvre l'app que sur notification → trigger interne raté, churn imminent
+
+### 5.2 Phase 2 — Action (comportement attendu)
+- L'action est **le comportement le plus simple** que l'utilisateur fait en anticipation d'un reward
+- Fogg Behavior Model : `Behavior = Motivation × Ability × Trigger`
+  - Les 3 doivent converger **au même moment** pour qu'une action se produise
+  - Si motivation faible → augmenter ability (rendre l'action plus simple)
+  - Si ability bloquée → augmenter motivation (rappeler le bénéfice)
+  - Si trigger absent → installer un trigger (notification, widget, badge)
+- Exemples d'actions canoniques :
+  - Swipe (Tinder / TikTok / Snap)
+  - Tap pour révéler (Inbox / scratch ticket)
+  - Pull-to-refresh (Instagram / Twitter)
+  - Open app + glance (Météo, Bourse)
+  - Snap photo (BeReal, Snapchat)
+- **Règle design** : 1 action principale par session, accessible en ≤ 2 taps depuis cold start (cf. §1.2)
+
+### 5.3 Phase 3 — Variable Reward (récompense variable)
+- L'incertitude sur la nature ou la magnitude de la récompense **active le système dopaminergique** (anticipation > satisfaction)
+- 3 types de variable reward (Nir Eyal) :
+  - **Reward of the tribe** : validation sociale (likes, commentaires, streak partagé, leaderboard)
+  - **Reward of the hunt** : matériel / information (nouvelle recette, nouvelle photo dans le feed, nouveau score, nouvelle stat)
+  - **Reward of the self** : maîtrise / accomplissement (passer un niveau, finir une session, voir sa progression)
+- **Reinforcement schedule** : pas la même récompense à chaque fois. Patterns :
+  - Variable ratio (la majorité des sessions = petit reward, occasionnellement gros reward) — pattern le plus addictif
+  - Variable interval (le timing du reward varie — pull-to-refresh ramène parfois rien, parfois 10 items)
+- ⚠️ Limite éthique : la variable reward peut basculer en design manipulatoire. **Aligner le reward avec un bénéfice utilisateur réel** (pas juste un endorphin hit creux)
+
+### 5.4 Phase 4 — Investment (investissement utilisateur)
+- L'utilisateur investit quelque chose dans l'app **après** le reward : temps, data, effort, social capital, money
+- Cet investissement améliore l'expérience à la prochaine session ET augmente le coût de switch
+- Exemples canoniques :
+  - **Data** : ajouter ses préférences, importer ses contacts, configurer son profil
+  - **Content** : créer une recette, poster une photo, enregistrer un favori
+  - **Social capital** : suivre des utilisateurs, partager un score, inviter un ami
+  - **Reputation** : score, level, badges, streaks (perdre un streak = perte d'investissement réel)
+  - **Money** : abonnement payant (le paiement lui-même = investissement, l'utilisateur défend sa décision)
+- **L'investissement charge le prochain trigger** : ajouter une recette à mes favoris → notification "Nouvelle recette ajoutée à ta collection cette semaine" → re-trigger
+
+### 5.5 Boucle complète vs hook brisé
+- **Boucle complète** : trigger interne (ennui) → action simple (open + swipe) → reward variable (vidéo qui résonne) → investment (like, follow, partage) → next trigger chargé (notification "X nouveaux contenus comme celui-ci")
+- **Hook brisé** typique : trigger fort (push agressif) → action simple → **pas de reward variable** (toujours le même contenu) → **pas d'investment** (rien à perdre, rien à construire) → désinstallation après 3 sessions
+- Audit récurrent : pour chaque flow récurrent du produit, écrire les 4 phases et identifier laquelle est faible ou manquante
+
+---
+
+## 6. Rétention & Maintenance "boring"
 
 ### 5.1 Écran Settings standardisé
 - Modèle de paramètres réutilisable d'une app à l'autre — gain de temps + cohérence
@@ -121,7 +184,7 @@ Règles **actionables**, numérotées pour référence directe.
 
 ---
 
-## 6. Critères d'audit machine-readable
+## 7. Critères d'audit machine-readable
 
 Liste binaire utilisée par `ui-kit-audit` pour évaluer un kit. Chaque critère = `pass` / `fail` / `n/a`.
 
@@ -144,3 +207,9 @@ Liste binaire utilisée par `ui-kit-audit` pour évaluer un kit. Chaque critère
 | RM-1 | Écran Settings respectant le modèle standard (Compte/Abo/Notifs/Apparence/Confidentialité/Support/About) | structure de `settings.html` |
 | RM-2 | Section "Abonnement" avec "Restore Purchases" visible | grep restore purchases / restaurer achats |
 | RM-3 | Empty states avec CTA d'action (pas juste un texte vide) | cells "empty" contiennent un bouton |
+| HK-1 | Trigger interne identifié (émotion source) documenté dans le kit ou via `data-hint` sur l'écran d'entrée | grep `data-hint=".*trigger.*"` / mention émotion source dans GUIDELINES.md ou README.md du kit |
+| HK-2 | Au moins un trigger externe configuré (push notification, badge icon, widget, live activity) | grep `data-uses="native:push-notification"` ou `data-uses="native:widget"` / `data-uses="native:live-activity"` dans le kit |
+| HK-3 | Action principale du core loop atteignable en ≤ 2 taps depuis cold start (cf. CL-2) | comptage taps du flow entrée → core action |
+| HK-4 | Variable reward implémenté sur l'action principale (pas le même résultat à chaque fois) | présence d'au moins 2 variantes / states dans la cell post-action (jackpot, neutre, gros gain…) |
+| HK-5 | Au moins un mécanisme d'investment user (favoris, profile data, social capital, streaks…) présent dans le kit | grep `data-uses="ui:favorite"` / cells de profil avec inputs / flow `streaks` ou `collection` |
+| HK-6 | L'investment charge le prochain trigger (ex: ajout favori → notification "Nouveau X dans tes favoris") — documenté dans GUIDELINES.md | grep dans GUIDELINES.md des phrases "déclenche" / "trigger" en lien avec les actions d'investment |
