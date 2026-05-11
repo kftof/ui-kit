@@ -1,6 +1,6 @@
 # UI Kit Skills
 
-**Version 1.12** — Skills pour [Claude Code](https://claude.com/claude-code), inspiré de [claude.ai/design](https://claude.ai/design).
+**Version 1.13** — Skills pour [Claude Code](https://claude.com/claude-code), inspiré de [claude.ai/design](https://claude.ai/design).
 
 | Skill | Usage |
 |---|---|
@@ -10,7 +10,7 @@
 | [`ui-kit-brand-explorer`](ui-kit-brand-explorer/SKILL.md) | Explorer plusieurs directions logo (6 directions × 4 variantes), choisir, générer les 7 fichiers brand cohérents — neutre côté esthétique (suit le DS et le ton du brief, dark-first / sobre / chaleureux / technique selon le projet) |
 | [`ui-kit-to-code`](ui-kit-to-code/SKILL.md) | Transformer une maquette HTML en code (React, Vue, Flutter, SwiftUI, Compose…) en lisant les conventions sémantiques pour générer du code idiomatique au lieu d'un mockup mort |
 
-Ces skills produisent des kits **machine-readable** : conventions explicites sur les attributs HTML (`data-asset`, `data-os-chrome`, `data-uses`, `data-hint`, `data-screen-label`, `data-nav-target`, `data-auto-advance`) qui permettent à n'importe quel outil de code-gen (scripts custom, agents IA) de mapper les maquettes vers du code mobile sans deviner.
+Ces skills produisent des kits **machine-readable** : conventions explicites sur les attributs HTML (`data-asset`, `data-os-chrome`, `data-uses`, `data-hint`, `data-screen-label`, `data-nav-target`, `data-auto-advance`, `data-api-call`) qui permettent à n'importe quel outil de code-gen (scripts custom, agents IA) de mapper les maquettes vers du code mobile sans deviner.
 
 ## Installation
 
@@ -125,6 +125,7 @@ Les autres assets (brand / illustrations / images) utilisent `<img src="ds/asset
 | `data-hint="..."` | Hint sémantique métier libre (galerie BDD vs native, swipe behavior, logique non visible). |
 | `data-nav-target="<flow>/<page>[:<state>]"` | CTA / row / lien qui navigue vers un autre écran. `+ data-nav-back="true"` pour le retour. Consommé par le prototype interactif (clics navigables) ET par les outils de code-gen (génération directe des routes). |
 | `data-auto-advance="<flow>/<page>[:<state>]"` + `data-auto-advance-delay="<ms>"` | Posés sur la cell `[data-screen-label]`, signalent une navigation **temporisée** (splash → home, processing → result, toast auto-dismiss). Délai par défaut 3000 ms. Consommé par le prototype (Timer + barre de progress + bouton stop) ET par les outils de code-gen (Timer/LaunchedEffect/.task avec cancel-on-dispose). |
+| `data-api-call="<METHOD>:/path[;<METHOD>:/path...]"` | Élément / conteneur qui consomme un endpoint backend. Posé sur le conteneur le plus haut (typiquement `<main>` ou `.phone__screen`) ou sur un bouton qui POST/PUT/DELETE au tap. **Héritage parent + set union enfants**. Skip sous `data-os-chrome`. Format strict : `METHOD` ∈ `GET\|POST\|PUT\|PATCH\|DELETE`, path identique à l'OpenAPI, path params en `{name}`, multiples séparés par `;`, **pas de query string**. Permet au code-gen de générer paresseusement la couche data uniquement pour les endpoints réellement consommés. |
 
 Ces conventions permettent à un script `grep` ou un agent LLM de comprendre la **sémantique** des éléments (pas seulement leur visuel), ce qui change radicalement la qualité du code généré.
 

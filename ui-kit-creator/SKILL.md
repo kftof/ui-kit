@@ -863,6 +863,58 @@ Quand un CTA / row / lien navigue vers un autre écran (autre flow, autre page, 
 
 **Règle** : poser `data-nav-target` sur **tout élément cliquable qui navigue** (button, .task-row, .nav-action, a). Ne pas en poser sur les éléments qui ouvrent juste un menu contextuel (`data-uses="ui:popup-menu"`) ou un toast — ce ne sont pas des navigations entre pages.
 
+### `data-api-call` — endpoint(s) consommé(s) par l'élément
+
+Tout élément (ou conteneur) qui consomme de la data depuis un endpoint backend doit porter cet attribut. Permet aux outils de code-gen de générer paresseusement la couche data **uniquement** pour les endpoints réellement consommés (pas de DTOs / repos morts).
+
+**Format** : `<METHOD>:/path[;<METHOD>:/path...]`
+- `METHOD` ∈ `GET | POST | PUT | PATCH | DELETE`
+- `/path` identique à l'OpenAPI du backend (path params en `{name}`)
+- Plusieurs endpoints sur le même élément : séparés par `;` (ex: `"GET:/recipes/{recipe_id};GET:/recipes/{recipe_id}/comments"`)
+- Les **query params** ne sont PAS dans `data-api-call` — ils vivent dans le state du cubit / view-model
+- Espaces tolérés autour du `:` et après `;`
+
+**Héritage parent + set union enfants** : si un parent porte `data-api-call`, la valeur s'applique au sous-arbre. Si un enfant a aussi son propre `data-api-call`, **les deux s'additionnent** (set union, pas override). Skip exhaustif sous `data-os-chrome` (un appel API depuis la status bar serait nonsense).
+
+**Exemples** :
+
+```html
+<!-- Section listant les recettes paginées -->
+<section class="recipes-grid" data-api-call="GET:/recipes">
+  …
+</section>
+
+<!-- Page détail : la recette + ses commentaires -->
+<main data-api-call="GET:/recipes/{recipe_id};GET:/recipes/{recipe_id}/comments">
+  …
+</main>
+
+<!-- Bouton qui POST au tap -->
+<button class="btn btn-primary"
+        data-api-call="POST:/recipes/scan"
+        data-uses="native:camera">
+  Prendre en photo
+</button>
+
+<!-- Feed d'accueil multi-sources -->
+<div class="home-feed" data-api-call="GET:/recipes;GET:/family/feed">
+  …
+</div>
+```
+
+**Règles** :
+- Poser sur le **conteneur le plus haut** qui consomme l'endpoint (typiquement `<main>`, `<section>`, ou la `.phone__screen` pour une page entière) plutôt que sur chaque enfant — le set union avec les enfants couvre les cas de sous-zones qui ajoutent un appel
+- Pour un POST/PUT/DELETE/PATCH déclenché au clic : poser sur le **bouton qui déclenche** l'appel, pas sur le conteneur
+- Pour une page entièrement statique (onboarding, splash, écran de marketing pré-auth) : pas de `data-api-call` (pas d'appel backend = rien à déclarer)
+- Si un même endpoint est consommé par plusieurs états de la même page (default + loading + error), le déclarer une fois sur le conteneur parent — il s'applique à tous les états
+
+**Pourquoi c'est important** : sans `data-api-call`, le code-gen doit deviner les endpoints à partir des classes CSS / hints / inferences LLM. Coût : DTOs générés pour des endpoints jamais consommés, ou cubits codés en dur sans data, ou pire — endpoint manquant en silence. Avec `data-api-call`, la maquette EST la source de vérité du data layer, comparable mécaniquement.
+
+**Co-bénéfices** :
+- Outils de code-gen (`api-client-from-openapi` ou équivalent) génèrent paresseusement clients + DTOs + repos HTTP **uniquement** pour l'union des endpoints réellement déclarés
+- Code-gen Flutter / Compose / SwiftUI génère un cubit / view-model data-driven qui consomme les bons repos (`await _recipeRepo.getById(id)`) au lieu d'`emit(initial)` placeholder
+- Audit trail : retirer un `data-api-call` d'une maquette = retirer l'endpoint du data layer à la prochaine régen — avec warning `BREAKING_CHANGE` si du code existant l'utilisait
+
 ### Récapitulatif — quel attribut quand ?
 
 | Tu veux exprimer… | Attribut | Lecture |
@@ -875,6 +927,7 @@ Quand un CTA / row / lien navigue vers un autre écran (autre flow, autre page, 
 | "Logique métier non visible (galerie BDD vs native, swipe behavior, etc.)" | `data-hint="..."` | LLM |
 | "État visuel de la cell" | `data-screen-label` | regex tools |
 | "Cet élément navigue vers un autre écran" | `data-nav-target="<flow>/<page>[:<state>]"` (+ optionnel `data-nav-back`) | regex tools + prototype runtime + code-gen |
+| "Cet élément/conteneur consomme cet endpoint backend" | `data-api-call="<METHOD>:/path[;...]"` (héritage parent + set union enfant) | regex tools + code-gen (couche data paresseuse) |
 
 ## ✍️ `UI Kit.html` — page unique tout-en-un
 
@@ -967,6 +1020,8 @@ Une seule page de doc visuelle. Tout est dedans, rendu visuellement, **sans aucu
 28. **Galerie BDD app sans `data-hint`** : visuellement identique à une galerie native, mais le code à générer est radicalement différent. Si la galerie affiche des photos depuis la BDD utilisateur (pas la pellicule device), le marquer en `data-hint="Galerie en BDD app via XxxRepository, pagination N/page"` pour lever l'ambiguïté.
 29. **CTA / row / lien navigant vers un autre écran sans `data-nav-target`** : le skill `ui-kit-prototype` ne pourra pas intercepter le clic, et l'agent codeur devra deviner où ce bouton mène. Coût : prototype incomplet + bug-prone côté routing. Toujours poser `data-nav-target="<flow>/<page>[:<state>]"` dès que le clic navigue. Pour les boutons retour : `data-nav-target="back" data-nav-back="true"`.
 30. **`<text>` SVG avec font-family CSS-list (`"A, B, serif"`) ou `font-variation-settings`** : casse le rendu côté `flutter_svg` (parse strict, pas de fallback, pas de variation-settings). Voir § "Texte dans les SVG assets" : une seule famille, `font-weight`/`font-style` standards, famille présente dans `ds/assets/fonts/`.
+31. **Page data-driven sans `data-api-call`** : la maquette montre une liste, un détail, un feed — tout indique une consommation backend — mais aucun `data-api-call` n'est posé. Coût : le code-gen génère un cubit `emit(initial)` placeholder (pas de vraie data) ou pire infère le mauvais endpoint. Toujours poser `data-api-call="<METHOD>:/path"` sur le conteneur le plus haut qui consomme l'endpoint. Une page entièrement statique (onboarding, splash, marketing pré-auth) reste OK sans `data-api-call`.
+32. **`data-api-call` avec query params en dur** : `data-api-call="GET:/recipes?cuisine=italian"` est faux. Les query params vivent dans le state du cubit (filtres, pagination, recherche). Seuls les **path params** sont dans `data-api-call` avec `{name}` (ex: `GET:/recipes/{recipe_id}`). Si le filtre est figé côté UI (toujours `cuisine=italian` pour cette page particulière), c'est un détail de paramétrage à exprimer en `data-uses-context` ou `data-hint`, pas dans `data-api-call`.
 
 ## 📚 Templates des 3 fichiers de documentation
 
@@ -1305,6 +1360,7 @@ L'ordre est strict — le DS doit exister **avant** que le premier Flow soit éc
     - **Pour chaque fonction native sollicitée** (image-picker, camera, biometric, etc.) : un `data-uses="native:..."` est posé. Documenter le paramétrage en `data-uses-context` si non-trivial
     - **Pour chaque ambiguïté métier** (galerie BDD vs native, swipe behavior, etc.) : un `data-hint="..."` est posé
     - **Pour chaque CTA / row / lien qui navigue** entre écrans : un `data-nav-target="<flow>/<page>[:<state>]"` est posé. Pour les boutons retour : `data-nav-target="back" data-nav-back="true"`. Vérifier que toutes les cibles existent (grep `data-nav-target` puis valider chaque target contre l'inventaire `flows/<flow>/<page>.html` × `data-screen-label`).
+    - **Pour chaque page qui consomme du backend** (liste, détail, feed, formulaire avec submit) : un `data-api-call="<METHOD>:/path"` est posé sur le conteneur le plus haut (typiquement `<main>` ou `.phone__screen`). Boutons POST/PUT/DELETE : `data-api-call` sur le bouton. Format strict `<GET|POST|PUT|PATCH|DELETE>:/path`, path params en `{name}`, multiples séparés par `;`. Vérifier qu'aucune query string n'est dans l'attribut (`?param=...` interdit). Une page entièrement statique (splash, onboarding, marketing pré-auth) reste sans `data-api-call`.
     - `xmllint --noout` sur **tous** les SVG de `ds/assets/` → 0 erreur (pour confirmer que rien n'a été ajouté qui casserait le rendu via `<img>`)
     - **screenshot viewport-by-viewport** de chaque page via chrome-devtools (cf. § Validation visuelle), relire chaque section, vérifier dark mode si supporté
 16. **Livrer le package complet** avec un récap des screenshots vérifiés

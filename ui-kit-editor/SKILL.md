@@ -53,6 +53,7 @@ En plus de `data-asset` et `data-screen-label`, **plusieurs attributs sémantiqu
 | `data-uses-context="..."` | Texte libre paramétrant `data-uses` (multi-select, max items, options) | — |
 | `data-hint="..."` | Hint sémantique métier libre (galerie BDD vs native, swipe behavior, etc.) | — |
 | `data-nav-target="<flow>/<page>[:<state>]"` | CTA / row / lien qui navigue vers un autre écran. `+ data-nav-back="true"` pour le retour. | format `<flow_id>/<page_id>` ou `<flow_id>/<page_id>:<state_id>` ou `back` |
+| `data-api-call="<METHOD>:/path[;...]"` | Élément / conteneur qui consomme un endpoint backend. Héritage parent + set union enfants. Skip sous `data-os-chrome`. | `METHOD` ∈ `GET\|POST\|PUT\|PATCH\|DELETE`, path identique à OpenAPI, path params en `{name}`, multiples séparés par `;` — query params exclus (vivent dans le state du cubit) |
 
 **Règles d'or** :
 - Les SVG du chrome système (signal, wifi, battery, time) sont skipés par héritage parent `data-os-chrome="status-bar"` — ils **n'ont jamais** `data-asset`.
@@ -74,6 +75,7 @@ Symptômes typiques sur kits anciens :
 - **patterns UI à comportement non-évident** (carousel, dialog, bottom-sheet, etc.) sans `data-uses="ui:..."` → l'agent recode en custom au lieu d'utiliser le widget partagé / framework primitive
 - **fonctions natives** (image-picker, camera, biometric) sans `data-uses="native:..."` → l'agent recode une UI custom
 - **CTA / rows / liens qui naviguent** entre écrans sans `data-nav-target` → `ui-kit-prototype` ne peut pas créer de prototype interactif fonctionnel, et l'agent codeur devine au lieu de générer la bonne route
+- **Pages data-driven (liste, détail, feed, form) sans `data-api-call`** → le code-gen génère un cubit `emit(initial)` placeholder ou infère le mauvais endpoint. Poser sur le conteneur le plus haut (`<main>` ou `.phone__screen`) qui consomme l'endpoint. Format strict `<METHOD>:/path`, path params en `{name}`, multiples séparés par `;` — query params **interdits** dans l'attribut
 - **galeries BDD app vs native** ambiguës sans `data-hint` métier
 
 **Ne pas faire semblant que tout est OK** — signaler à l'utilisateur, proposer une consolidation (cf. recette "Consolider un kit non-DRY") avant ou en parallèle de la modif demandée.
@@ -380,9 +382,9 @@ Cas typique : `tokens.css` commence par `@import url('https://fonts.googleapis.c
 5. **Screenshot post-migration** via chrome-devtools — vérifier que la typo s'affiche correctement (pas de fallback system inattendu, espacements lettres préservés).
 6. **Ajouter le snippet `pubspec.yaml`** dans `GUIDELINES.md` ou `README.md` pour le dev Flutter.
 
-### Migrer un kit aux conventions sémantiques (data-os-chrome, data-uses, data-hint, data-nav-target)
+### Migrer un kit aux conventions sémantiques (data-os-chrome, data-uses, data-hint, data-nav-target, data-api-call)
 
-À appliquer sur un kit antérieur aux conventions sémantiques. Symptômes typiques : status-bar/dynamic-island/home-indicator sans `data-os-chrome`, SVG signal/wifi/battery porteurs de `data-asset` (faux), patterns carousel/dialog/bottom-sheet sans `data-uses="ui:..."`, image-picker recodé en UI custom au lieu de `data-uses="native:image-picker"`, CTA navigants sans `data-nav-target`.
+À appliquer sur un kit antérieur aux conventions sémantiques. Symptômes typiques : status-bar/dynamic-island/home-indicator sans `data-os-chrome`, SVG signal/wifi/battery porteurs de `data-asset` (faux), patterns carousel/dialog/bottom-sheet sans `data-uses="ui:..."`, image-picker recodé en UI custom au lieu de `data-uses="native:image-picker"`, CTA navigants sans `data-nav-target`, pages data-driven (liste, détail, feed) sans `data-api-call`.
 
 **Pourquoi c'est important** : sans ces conventions, un outil de code-gen génère du code qui mocke le chrome système (mort), recode des UI custom au lieu d'utiliser les widgets partagés du projet, et liste des assets fantômes dans le contrat émis. Bug invisible avant intégration.
 
@@ -435,17 +437,40 @@ Cas typique : `tokens.css` commence par `@import url('https://fonts.googleapis.c
 
    **Cross-check** : pour chaque `data-nav-target` posé, vérifier que la cible existe (cell `data-screen-label` correspondante dans le bon fichier flow).
 
-6. **Pour chaque modif**, suivre la phase 4 vérification (screenshot viewport-by-viewport). Le rendu visuel ne doit pas changer — c'est purement du tagging.
+6. **Inventaire `data-api-call` à poser** — endpoints consommés par chaque page :
+   ```bash
+   # Pages qui rendent une liste / détail / feed / form — candidates fortes pour data-api-call
+   grep -lrE 'class="[^"]*\b(list|grid|feed|detail-card|form)\b' flows/
+   ```
+   Pour chaque page candidate, identifier le(s) endpoint(s) consommé(s) :
+   - Page liste de recettes → `<main data-api-call="GET:/recipes">`
+   - Page détail recette → `<main data-api-call="GET:/recipes/{recipe_id};GET:/recipes/{recipe_id}/comments">`
+   - Bouton "Prendre en photo" qui upload → `<button data-api-call="POST:/recipes/scan" data-uses="native:camera">`
+   - Form de modification → `<form data-api-call="PUT:/recipes/{recipe_id}">` (le path param vient du context route)
+   - Bouton "Supprimer" → `<button data-api-call="DELETE:/recipes/{recipe_id}">`
 
-6. **Audit final** :
+   **Règles** :
+   - Poser sur le **conteneur le plus haut** qui consomme l'endpoint (typiquement `<main>` ou la `.phone__screen`)
+   - **Path params en `{name}`**, jamais avec valeur en dur (`{recipe_id}` pas `42`)
+   - **Pas de query params** dans `data-api-call` (`?cuisine=italian` interdit — vit dans le state du cubit)
+   - Multiples endpoints séparés par `;`
+   - Une page entièrement statique (splash, onboarding, marketing pré-auth) reste sans `data-api-call`
+
+   **Cross-check OpenAPI** : si le projet a un fichier OpenAPI (typiquement `docs/openapi.yaml` ou `backend/openapi.yaml`), vérifier que chaque `<METHOD>:/path` posé existe bien dedans. Sinon `unknowns` + signaler à l'utilisateur.
+
+7. **Pour chaque modif**, suivre la phase 4 vérification (screenshot viewport-by-viewport). Le rendu visuel ne doit pas changer — c'est purement du tagging.
+
+9. **Audit final** :
    ```bash
    # Aucun SVG du chrome système ne porte data-asset
    grep -E '<svg[^>]*data-asset[^>]*>' flows/ -A 5 | grep -B 2 -E '(class="status-bar"|<rect.*[0-9]+,[0-9]+|wifi|battery)' || echo "✓ aucun"
    # Tous les patterns UI évidents portent data-uses
    # Toutes les fonctions natives portent data-uses
+   # data-api-call : format valide partout
+   grep -rE 'data-api-call="[^"]*"' flows/ | grep -vE 'data-api-call="(GET|POST|PUT|PATCH|DELETE):/[^?"]+(;\s*(GET|POST|PUT|PATCH|DELETE):/[^?"]+)*"' && echo "✗ data-api-call mal formé (query string ou METHOD invalide)" || echo "✓ data-api-call format OK"
    ```
 
-7. **Screenshot viewport-by-viewport** chaque page touchée + vérifier zéro régression.
+10. **Screenshot viewport-by-viewport** chaque page touchée + vérifier zéro régression.
 
 **Note** : cette recette est purement additive. Elle n'enlève rien d'existant sauf les `data-asset` parasites sur le chrome système. Le rendu visuel reste identique avant/après.
 

@@ -60,6 +60,7 @@ Faire dans cet ordre — la section Composants de `UI Kit.html` et le dossier `d
    - `grep -oE 'data-nav-target="[^"]+"'` → routes à brancher au router
    - `grep -oE 'data-uses="(native|ui):[^"]+"'` → packages natifs ou primitives framework requis
    - `grep -oE 'data-auto-advance="[^"]+"'` + `data-auto-advance-delay` → transitions temporisées (Timer + cancel-on-dispose)
+   - `grep -oE 'data-api-call="[^"]+"'` → endpoints backend consommés (set union héritage parent + enfants) → mapping vers les repos / providers du projet
    - `grep -oE 'data-hint="[^"]+"'` → sémantique métier non-visible (à traiter au cas-par-cas)
 7. **Screenshot du Flow** via chrome-devtools (viewport-by-viewport, une cellule à la fois) — référence visuelle de fidélité.
 8. **Repérer les conventions** du DS (nommage, échelle, dark mode).
@@ -404,6 +405,68 @@ Posés sur la cell `[data-screen-label]` (PAS dans le `.phone__screen` extrait).
 
 ⚠️ **Toujours cancel le timer si le user navigue manuellement avant la fin** — sinon double navigation. Le pattern framework natif (LaunchedEffect, .task, useEffect cleanup, dispose) gère ça automatiquement quand le widget se démonte.
 
+### `data-api-call` — endpoints consommés par la page
+
+Format : `<METHOD>:/path[;<METHOD>:/path...]` où `METHOD` ∈ `GET|POST|PUT|PATCH|DELETE`. Posé sur le conteneur le plus haut qui consomme l'endpoint, ou sur un bouton qui déclenche un POST/PUT/DELETE/PATCH. Path params en `{name}`, multiples séparés par `;`, **pas de query string** (ils vivent dans le state du cubit).
+
+**Extraction côté code-gen** :
+```bash
+# 1. Lister tous les data-api-call de la page
+grep -oE 'data-api-call="[^"]+"' flows/<NN-flow>/<page>.html
+
+# 2. Set union (dédoublonner METHOD + path)
+# 3. Pour chaque (METHOD, path) : générer / brancher le repo correspondant
+```
+
+**Mapping vers le data layer** :
+
+| Framework | GET (read) | POST / PUT / PATCH / DELETE (write) |
+|---|---|---|
+| Flutter (Cubit + Repository) | `await _xxxRepo.getById(id)` / `await _xxxRepo.list(filters)` dans le cubit | `await _xxxRepo.create(dto)` / `update(...)` / `delete(id)` au handler |
+| Flutter (Riverpod) | `final data = ref.watch(xxxProvider(id))` | `ref.read(xxxNotifier.notifier).create(dto)` |
+| SwiftUI (ObservableObject) | `Task { let data = try await repo.getById(id); … }` dans `.task { … }` | `Task { try await repo.create(dto) }` au handler |
+| Compose (ViewModel + Hilt) | `viewModelScope.launch { val data = repo.getById(id) }` dans `init` | `viewModelScope.launch { repo.create(dto) }` au handler |
+| React (TanStack Query) | `const { data } = useQuery({ queryKey: ['x', id], queryFn: () => api.getById(id) })` | `const m = useMutation({ mutationFn: api.create }); m.mutate(dto)` |
+| Vue (Pinia + composable) | `const { data } = await useFetch(\`/x/\${id}\`)` ou store Pinia | `await store.create(dto)` |
+
+**Règles** :
+- **GET déclaratifs** : injecter dans le state initial du cubit/view-model — pas dans un handler. Le user n'a rien à faire pour les déclencher (c'est le render qui les consomme)
+- **POST/PUT/DELETE/PATCH actionnables** : connecter au handler du bouton (`onTap`, `onClick`, `@click`). Souvent suivis d'un `data-nav-target` qui exprime "vers où on va après succès"
+- **Path params** : extraits du context route (ex: `id` vient de `/recipes/:id`). Le code-gen passe ces params automatiquement
+- **Query params** (filtres, pagination, recherche) : vivent dans le state du cubit/view-model (`recipesFilterState.cuisine`), pas dans `data-api-call`
+- **Set union héritage** : si la page a `<main data-api-call="GET:/recipes">` ET un bouton interne `<button data-api-call="POST:/recipes/scan">`, **les deux** doivent être branchés (la page liste + l'action POST)
+- **Cohérence OpenAPI** : chaque `<METHOD>:/path` doit exister dans le contrat OpenAPI du projet (sinon le repo ne pourra pas être généré). Vérifier avant de coder
+
+**Exemple Flutter (Cubit data-driven)** :
+```dart
+// HTML : <main data-api-call="GET:/recipes/{recipe_id};GET:/recipes/{recipe_id}/comments">
+
+class RecipeDetailCubit extends Cubit<RecipeDetailState> {
+  RecipeDetailCubit(this._recipeRepo, this._commentsRepo)
+      : super(const RecipeDetailState.loading());
+
+  final RecipeRepository _recipeRepo;
+  final CommentsRepository _commentsRepo;
+
+  Future<void> load(String recipeId) async {
+    try {
+      final results = await Future.wait([
+        _recipeRepo.getById(recipeId),
+        _commentsRepo.listForRecipe(recipeId),
+      ]);
+      emit(RecipeDetailState.loaded(
+        recipe: results[0] as Recipe,
+        comments: results[1] as List<Comment>,
+      ));
+    } catch (e) {
+      emit(RecipeDetailState.error(e));
+    }
+  }
+}
+```
+
+Sans `data-api-call`, le code-gen aurait soit codé un `emit(initial)` mort, soit deviné un seul endpoint et raté les commentaires. Avec, la couche data est **mécaniquement** dérivée de la maquette.
+
 ### Exemple complet — écran "magic processing" avec auto-advance + os-chrome + hint
 
 **HTML source** :
@@ -628,6 +691,9 @@ fun MemberRow(member: Member, onClick: () -> Unit) {
 19. **Deviner la destination d'un bouton** sans `data-nav-target` — un bouton non annoté est non-navigant, alerter le designer si la maquette est ambiguë
 20. **Oublier l'auto-advance** sur un écran de splash/loading/processing — lire `data-auto-advance` sur la cell et installer un Timer/LaunchedEffect/.task avec cancel-on-dispose
 21. **Ignorer les `data-hint`** qui décrivent une logique métier non-visible (rotation de texte, source BDD vs device, swipe différencié) — ces hints comptent pour la qualité du code généré
+22. **Page data-driven codée avec `emit(initial)` placeholder** alors que `data-api-call` est posé — toujours brancher le cubit / view-model aux vrais repos correspondants. Si le repo n'existe pas encore côté projet, signaler explicitement avant de stubber
+23. **Inventer un endpoint absent du contrat OpenAPI** parce qu'aucun `data-api-call` n'est posé — alerter le designer / utilisateur pour qu'il pose l'attribut côté kit, ne pas deviner. Coût d'une mauvaise inference : DTO faux, repo mort, page qui ne charge rien à l'exécution
+24. **Coller la query string en dur dans le repo call** (`api.getRecipes('?cuisine=italian')`) — les query params sont state, pas data-api-call. Le code-gen doit les router vers le state du cubit/view-model (`recipesFilterState.cuisine`)
 
 ## ✅ Checklist finale
 
@@ -651,6 +717,7 @@ fun MemberRow(member: Member, onClick: () -> Unit) {
 - [ ] **`data-uses="ui:*"`** → primitive framework (PageView, BottomSheet, etc.) plutôt que recodage custom
 - [ ] **`data-uses-context`** transmis aux paramètres de l'API native quand présent
 - [ ] **`data-auto-advance`** → Timer/LaunchedEffect/.task avec cancel-on-dispose ; tester que le timer s'annule en cas de nav manuelle
+- [ ] **`data-api-call`** → chaque endpoint déclaré est branché à un repo / provider du projet (cubit data-driven pour GET, handler pour POST/PUT/DELETE/PATCH). Set union héritage parent + enfants respectée. Path params extraits du context route. Query params dans le state du view-model, pas en dur
 - [ ] **`data-hint`** → annotation prise en compte (texte rotatif, source de données, comportement de swipe…) ; pas ignorée silencieusement
 - [ ] **Comparaison visuelle** : screenshot du Flow source côte-à-côte avec rendu du code généré (si possible)
 
