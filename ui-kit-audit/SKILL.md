@@ -1,11 +1,13 @@
 ---
 name: ui-kit-audit
-description: Audite un UI kit HTML existant contre les playbooks de stratégie (onboarding/paywall, engagement/viralité, psychologie/conversion) et produit un rapport `Audit.md` à la racine du kit avec les critères respectés / non / N/A + justification. À invoquer pour valider qu'un onboarding respecte les principes psychologiques, qu'un paywall maximise le MRR, que le core loop est sans friction, ou que le design est cohérent avec la niche cible. Ne modifie pas le kit — pour corriger, enchaîner avec `ui-kit-editor`.
+description: Audite un UI kit HTML existant contre les 3 playbooks de stratégie (onboarding/paywall, engagement/viralité, psychologie/conversion) ET contre les règles d'accessibilité mobile WCAG 2.1 AA, puis produit un rapport `Audit.md` à la racine du kit avec les critères respectés / non / N/A + justification + recommandations prioritaires ordonnées. À invoquer pour valider qu'un onboarding respecte les principes psychologiques, qu'un paywall maximise le MRR (avec patterns 2026 : trial annual-only, soft-then-hard, free vs pro table embedded, post-close offer, plan loader, PPP-adjusted pricing, AI personalization), qu'une boucle d'habitude Hook Model est implémentée, ou que le design est accessible. Ne modifie pas le kit — pour corriger, enchaîner avec `ui-kit-editor`.
 ---
 
 # UI Kit Audit — vérification stratégique d'un kit
 
-Évalue un kit existant contre **un ou plusieurs des 3 playbooks** stratégiques (`playbooks/01-onboarding-paywall.md`, `playbooks/02-engagement-virality.md`, `playbooks/03-conversion-psychology.md`) et produit un rapport `Audit.md` à la racine du kit.
+Évalue un kit existant contre **3 playbooks stratégiques** (`playbooks/01-onboarding-paywall.md`, `playbooks/02-engagement-virality.md`, `playbooks/03-conversion-psychology.md`) **+ une famille de critères accessibilité mobile WCAG 2.1 AA** (référencée depuis `ui-kit-creator/SKILL.md` § Accessibilité mobile). Produit un rapport `Audit.md` à la racine du kit.
+
+**Total de critères** : **76 critères stratégiques** (25 playbook 1 + 23 playbook 2 + 28 playbook 3) + **7 critères a11y WCAG mobile** = **83 critères** maximum si on lance l'audit complet.
 
 **Skill diagnostic, pas correctif** : il identifie les problèmes, ne les fixe pas. Pour appliquer les corrections, enchaîner avec `ui-kit-editor`.
 
@@ -79,11 +81,13 @@ Niche inférée : [méditation / fitness / etc.]
 
 ## Score global
 
-| Playbook | Pass | Fail | N/A | Score |
+| Playbook / Famille | Pass | Fail | N/A | Score |
 |---|---|---|---|---|
-| 01 — Onboarding/Paywall | X | Y | Z | X / (X+Y) = NN% |
-| 02 — Engagement/Viralité | … | … | … | … |
-| 03 — Psychologie/Conversion | … | … | … | … |
+| 01 — Onboarding/Paywall (25 critères : OB-* + PW-*) | X | Y | Z | X / (X+Y) = NN% |
+| 02 — Engagement/Viralité (23 critères : CL-* SH-* RV-* PR-* RM-* HK-*) | … | … | … | … |
+| 03 — Psychologie/Conversion (28 critères : OB-V* CV-* DIFF-* PA-* PE-* STYLE-* AP-*) | … | … | … | … |
+| WCAG 2.1 AA — Accessibilité mobile (7 critères : WC-*) | … | … | … | … |
+| **TOTAL** | … | … | … | … |
 
 ## Détail par critère
 
@@ -118,6 +122,22 @@ Liste les critères qui n'ont pas pu être évalués par grep / inspection visue
 - `CV-2` (Custom Product Pages prévues) : nécessite de regarder le déploiement App Store, pas le kit lui-même
 - `RM-3` (empty states actionables) : à vérifier qu'aucun empty state n'a été oublié — le skill ne sait que ce qui est dans le kit, pas ce qui manque
 ```
+
+### Phase 4.5 — Critères additionnels Accessibilité (WCAG 2.1 AA)
+
+Famille de critères a11y mobile, basée sur la section "♿ Accessibilité mobile — WCAG 2.1 AA" du `ui-kit-creator`. À auditer **par défaut** sur tout kit mobile (sauf si l'utilisateur l'exclut explicitement). Inclure dans le rapport `Audit.md` comme une 4e section après les 3 playbooks.
+
+| ID | Critère | Où chercher |
+|---|---|---|
+| WC-1 | Variable `--touch-target-min` (44px iOS / 48px Android) définie dans `tokens.css` | `grep -E '^\s*--touch-target-min' ds/tokens.css` |
+| WC-2 | Tous les éléments interactifs (boutons, rows, icon-buttons, tabs, links) ont `min-height` ≥ touch-target-min | inspection visuelle des cells + grep `min-height` dans `components.css` |
+| WC-3 | Paires de couleurs critiques respectent les ratios WCAG (texte normal 4.5:1, texte large 3:1, UI components 3:1) | calcul mécanique sur `--text` × `--bg`, `--text-muted` × `--bg`, `--text-on-primary` × `--primary`, mode dark inclus |
+| WC-4 | Icon-buttons sans texte visible ont un `data-a11y-label="..."` | `grep -rE '<button[^>]*class="[^"]*\b(icon-btn\|nav-action)\b' flows/ \| grep -v 'data-a11y-label'` → 0 match |
+| WC-5 | Images décoratives ont `data-a11y-hidden="true"` (et `alt=""`) | `grep -rE '<img[^>]+>' flows/ \| grep -v 'alt=' \| grep -v 'data-a11y-hidden'` → 0 match |
+| WC-6 | Toasts / snackbars ont `data-a11y-live="polite"` (ou `assertive` si critique) | `grep -rE 'class="[^"]*\b(toast\|snackbar\|alert)\b' flows/ \| grep -v 'data-a11y-live'` → 0 match |
+| WC-7 | Pas d'information transmise par la couleur seule (un dot rouge/vert pour status doit avoir aussi un icon ou un label) | inspection visuelle des status indicators |
+
+**Note** : WC-3 nécessite un calcul de contraste — si chrome-devtools MCP est disponible, utiliser `evaluate_script` pour extraire les `computedStyle` et calculer. Sinon proposer à l'utilisateur de lancer manuellement le check via WebAIM Contrast Checker, et marquer `WC-3` comme "non auditable automatiquement".
 
 ### Phase 5 — Cas particuliers
 

@@ -1,14 +1,15 @@
 # UI Kit Skills
 
-**Version 1.14** — Skills pour [Claude Code](https://claude.com/claude-code), inspiré de [claude.ai/design](https://claude.ai/design).
+**Version 1.15** — Skills pour [Claude Code](https://claude.com/claude-code), inspiré de [claude.ai/design](https://claude.ai/design).
 
 | Skill | Usage |
 |---|---|
-| [`ui-kit-creator`](ui-kit-creator/SKILL.md) | Créer un UI kit HTML depuis zéro (DS + composants + flows + assets + 3 fichiers de doc templatés : GUIDELINES.md, README.md, CLAUDE_SKILLS.md) |
+| [`ui-kit-creator`](ui-kit-creator/SKILL.md) | Créer un UI kit HTML depuis zéro (DS + composants + flows + assets + 3 fichiers de doc templatés). Inclut une section Accessibilité mobile WCAG 2.1 AA avec convention `data-a11y-*` et un catalogue de 15 styles UI nommés (Liquid Glass / Glassmorphism / Brutalism / Hand-drawn Sketch / etc.) |
 | [`ui-kit-editor`](ui-kit-editor/SKILL.md) | Modifier, étendre ou auditer un kit existant — inclut une recette dédiée pour fixer les fails d'un `Audit.md` |
 | [`ui-kit-prototype`](ui-kit-prototype/SKILL.md) | Générer un prototype interactif style Figma à partir d'un kit (clics → navigation, transitions temporisées, sidebar, animations) |
 | [`ui-kit-brand-explorer`](ui-kit-brand-explorer/SKILL.md) | Explorer plusieurs directions logo (6 directions × 4 variantes), choisir, générer les 7 fichiers brand cohérents — neutre côté esthétique (suit le DS et le ton du brief, dark-first / sobre / chaleureux / technique selon le projet) |
-| [`ui-kit-audit`](ui-kit-audit/SKILL.md) | Auditer un kit existant contre les 3 playbooks de stratégie et produire un rapport `Audit.md` avec score, critères pass/fail/n-a + justification, recommandations prioritaires ordonnées. Diagnostic uniquement — pour corriger, enchaîner avec `ui-kit-editor`. |
+| [`ui-kit-audit`](ui-kit-audit/SKILL.md) | Auditer un kit contre les 3 playbooks de stratégie + critères WCAG mobile (83 critères au total) et produire un rapport `Audit.md` avec score, critères pass/fail/n-a + justification, recommandations prioritaires ordonnées. Diagnostic uniquement — pour corriger, enchaîner avec `ui-kit-editor`. |
+| [`ui-kit-aso-metadata`](ui-kit-aso-metadata/SKILL.md) | **NEW** — Générer les textes de fiche App Store / Play Store haute conversion (App Name, Subtitle, Promo Text, Description, Keywords, What's New) avec validation stricte des limites Apple/Google, competitive analysis 3-5 concurrents, storyboard captures et Custom Product Pages. Livrable `ASO.md` (humain) + `ASO.json` (machine-readable, consommable CI/CD). Complémentaire de `aso-appstore-screenshots` qui gère les visuels. |
 | [`ui-kit-to-code`](ui-kit-to-code/SKILL.md) | Transformer une maquette HTML en code (React, Vue, Flutter, SwiftUI, Compose…) en lisant les conventions sémantiques pour générer du code idiomatique au lieu d'un mockup mort |
 
 Ces skills produisent des kits **machine-readable** : conventions explicites sur les attributs HTML (`data-asset`, `data-os-chrome`, `data-uses`, `data-hint`, `data-screen-label`, `data-nav-target`, `data-auto-advance`, `data-api-call`) qui permettent à n'importe quel outil de code-gen (scripts custom, agents IA) de mapper les maquettes vers du code mobile sans deviner.
@@ -136,9 +137,9 @@ Le repo inclut un dossier [`playbooks/`](playbooks/) avec 3 doctrines actionable
 
 | Playbook | Sujet | Quand l'appliquer |
 |---|---|---|
-| [`01-onboarding-paywall.md`](playbooks/01-onboarding-paywall.md) | Tunnel de vente onboarding (3 actes : cadrage psychologique → climax engagement → transition paywall) + règles paywall (Weekly/Annual, trial, rappel J-1, preuve sociale, transparence) | Kit avec flow onboarding ou écran paywall |
-| [`02-engagement-virality.md`](playbooks/02-engagement-virality.md) | Core loop sans friction, sharable moments brandés, demande d'avis au pic émotionnel, progression / streaks, settings standardisés | Tout kit avec flow d'usage principal (≈ tous les kits mobile) |
-| [`03-conversion-psychology.md`](playbooks/03-conversion-psychology.md) | Psychologie comportementale + stratégie visuelle marketing : Aha visuel, effet miroir, captures App Store axées bénéfice, sortie du "AI slope" via signe distinctif, mapping niche → palette/typo | Tout kit qui vise une conversion App Store |
+| [`01-onboarding-paywall.md`](playbooks/01-onboarding-paywall.md) | Tunnel de vente onboarding (3 actes : cadrage psychologique → climax engagement → transition paywall) + règles paywall (Weekly/Annual, trial, rappel J-1, preuve sociale, transparence) + **7 patterns 2026** (trial annual-only, soft-then-hard, Free vs Pro table embedded, post-close offer 24h, plan loader, PPP-adjusted pricing, AI personalization) | Kit avec flow onboarding ou écran paywall |
+| [`02-engagement-virality.md`](playbooks/02-engagement-virality.md) | Core loop sans friction, sharable moments brandés, demande d'avis au pic émotionnel, progression / streaks, settings standardisés + **Hook Model** (Trigger / Action / Variable Reward / Investment + Fogg B=MAT) pour articuler la boucle d'habitude complète | Tout kit avec flow d'usage principal (≈ tous les kits mobile) |
+| [`03-conversion-psychology.md`](playbooks/03-conversion-psychology.md) | Psychologie comportementale + stratégie visuelle marketing : Aha visuel, effet miroir, captures App Store axées bénéfice, sortie du "AI slope" via signe distinctif, mapping niche → palette/typo + **Peak-End Rule** (designer le pic + la fin de chaque flow) + **catalogue de 15 styles UI nommés** + **14 anti-patterns mobile** spécifiques | Tout kit qui vise une conversion App Store |
 
 **Boucle d'usage typique** :
 1. `ui-kit-creator` lit les playbooks pertinents au scope du kit avant d'écrire les écrans → kit **pass-par-construction**
