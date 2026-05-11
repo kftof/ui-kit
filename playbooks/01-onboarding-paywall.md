@@ -150,7 +150,73 @@ Règles **actionables**, numérotées pour référence directe (§1.1, §4.2…)
 
 ---
 
-## 6. Critères d'audit machine-readable
+## 6. Honnêteté & transparence — patterns interdits
+
+Les patterns persuasion ci-dessus (effet miroir, aversion à la perte, ancrage prix, social proof, etc.) sont **éthiques tant qu'ils s'appuient sur du réel**. Dès qu'on bascule dans l'invention ou la manipulation émotionnelle grossière, ça se voit, ça fait fuir, et ça nuit à la crédibilité du produit. Liste des patterns **interdits** par construction — à ne JAMAIS générer dans un onboarding ou un paywall.
+
+### 6.1 Statistiques fake / citations d'institutions non-traçables
+- ❌ "Selon une étude de l'INRAé, 73 % des Français…"
+- ❌ "Des chercheurs de Stanford ont prouvé que…"
+- ❌ "92 % des utilisateurs ont vu une amélioration en 7 jours" (chiffre inventé pour faire crédible)
+
+**Règle** : si tu cites une stat, elle doit être **vérifiable** (lien source dans le kit ou GUIDELINES.md). Si tu ne peux pas la sourcer, **reformule sans chiffre** :
+- ✅ "Beaucoup de gens passent trop de temps sur leur téléphone" (vague mais honnête)
+- ✅ "Tu n'es pas seul à vouloir reprendre le contrôle" (universel, pas chiffré)
+
+Citer une institution scientifique fictivement = perte de crédibilité + risque légal selon la juridiction.
+
+### 6.2 Emojis émotionnels manipulateurs (💔 😢 🚨 🔥)
+- ❌ Emoji 💔 sur un écran de cadrage "Tu ressens X ?"
+- ❌ Emoji 😢 dans une question d'onboarding ("Tu te sens triste parfois ?")
+- ❌ Emoji 🚨 ou 🔥 sur un titre de paywall ("URGENT — Offre limitée")
+
+**Règle** : pas d'emojis émotionnels sur les écrans de cadrage / conversion. Les emojis acceptables sont **décoratifs neutres** :
+- ✅ Icons SVG dédiés (avec `data-asset`) pour les illustrations
+- ✅ Emojis très contextuels et neutres (✓, →, ★) en accent typo si vraiment nécessaire
+
+Les emojis émotionnels sont une manipulation grossière qui se voit. Préférer une illustration SVG soignée (cf. `ds/assets/illustrations/`) pour matérialiser le ressenti.
+
+### 6.3 Échelles d'engagement grandiloquentes
+- ❌ "À quel point es-tu engagé ?" → choix : ["Pas du tout", "Un peu", "Beaucoup", "Plus que tout", "À 200%"]
+- ❌ "Vraiment ?" / "Absolument ?" / "Tu en es sûr ?" en boucle
+
+**Règle** : échelle factuelle, sobre, en 3 ou 5 niveaux **mesurables** :
+- ✅ "Peu engagé / Moyennement engagé / Très engagé" (3 niveaux)
+- ✅ Échelle numérique 1-5 ou 1-10 sans wording grandiloquent
+
+L'utilisateur se met en retrait quand il sent la formulation ridicule — ce qui ruine le bénéfice de la §3.3 (engagement avant paywall).
+
+### 6.4 Countdown 24h / 1h / 10min sur le paywall (false urgency)
+- ❌ Timer "Cette offre expire dans 23h 47m 12s" qui reset à chaque ouverture
+- ❌ Badge "FLASH SALE — last 5 minutes!" qui ne change jamais
+- ❌ "Plus que 3 places disponibles !" sur un produit SaaS infini
+
+**Règle** : pas de countdown sur le paywall **sauf** si l'offre est **réellement limitée** (ex: code promo Black Friday avec vraie deadline, post-close offer 24h §5.4 qui expire vraiment). Si tu poses un timer, il doit refléter une vraie limite, pas une pression artificielle.
+
+Le pattern 5.4 (post-close welcome offer) **est** une exception légitime au "pas de countdown" — mais l'offre doit vraiment expirer côté backend.
+
+### 6.5 Social proof inventé
+- ❌ "Rejoins 12 458 utilisateurs cette semaine" sans avoir 12 458 users
+- ❌ "★★★★★ — Marie, Paris" en faux testimonial
+- ❌ "4.9 ⭐ sur 8 932 avis" sans avoir 8 932 avis réels
+- ❌ "Comme vu dans Le Monde / TechCrunch / Forbes" sans avoir été publié dedans
+
+**Règle** : tout social proof posé sur un écran doit être **vérifiable**. Sources acceptables :
+- ✅ Reviews App Store / Play Store (capture screenshot d'un vrai avis, ou intégration via API)
+- ✅ Press mentions réelles avec lien
+- ✅ User counts approximatifs sourcés ("Plus de 10 000 téléchargements depuis le lancement" si vrai)
+
+Si tu n'as pas encore de social proof : ne pas en inventer. Préférer un message direct ("Nouveau venu — sois parmi les premiers à essayer") ou retirer la cell entièrement.
+
+### Pourquoi ces 5 patterns sont interdits
+
+Les utilisateurs mobile en 2026 reconnaissent ces patterns à 10 mètres — ils sont devenus tellement omniprésents (apps IA génériques, dropshipping, scammy fitness apps) que leur présence **signale** à l'utilisateur "cette app est suspecte / probablement low quality / probablement IA-gen". Effet inverse du but recherché : au lieu de convaincre, ils repoussent les utilisateurs avertis (ceux qui paient le plus).
+
+L'honnêteté éthique du produit **est** un argument de conversion. Les apps qui assument leur jeunesse ("Nouveau venu — pas encore de testimonial, on construit avec toi") convertissent mieux que celles qui inventent.
+
+---
+
+## 7. Critères d'audit machine-readable
 
 Liste binaire utilisée par `ui-kit-audit` pour évaluer un kit. Chaque critère = `pass` / `fail` / `n/a`.
 
@@ -181,3 +247,8 @@ Liste binaire utilisée par `ui-kit-audit` pour évaluer un kit. Chaque critère
 | PW-12 | Paywall variant "welcome-offer" (post-close discount 24h ciblé) | cell `paywall-welcome-offer` avec badge discount + countdown 24h |
 | PW-13 | Prix paramétré (variable / placeholder), pas en dur — permet pricing PPP-adjusted | grep dans cell paywall : `{{price_localized}}` ou `data-hint="price localized PPP"` au lieu de "$9.99/mo" |
 | PW-14 | `data-hint` signalant un messaging dynamique / AI-personalized sur le paywall (si concept produit le justifie) | grep `data-hint=".*personnalisé.*"` ou `data-hint=".*dynamic.*"` sur le paywall |
+| HON-1 | **Aucune stat fake** non traçable (ex: "Selon l'INRAé, l'IFOP, Stanford…" sans source réelle) sur les écrans onboarding/paywall | `grep -rE '(INRAé\|IFOP\|Stanford\|Harvard\|Oxford\|MIT)' flows/*onboarding*/ flows/*paywall*/ "UI Kit.html"` → 0 match (ou présence d'une source vérifiée dans GUIDELINES.md) ; grep également des `%` non sourcés dans le texte |
+| HON-2 | **Aucun emoji émotionnel manipulateur** (💔 😢 🚨 🔥 😱) sur les écrans onboarding/paywall | `grep -rE '(💔\|😢\|🚨\|🔥\|😱\|😭)' flows/*onboarding*/ flows/*paywall*/` → 0 match |
+| HON-3 | **Échelle d'engagement sobre** (3-5 niveaux mesurables, pas de wording grandiloquent type "Plus que tout" / "À 200%") | inspection des options de l'écran §3.3 — aucun choix avec superlatif absolu |
+| HON-4 | **Pas de countdown** sur le paywall principal (sauf welcome-offer §5.4 qui expire vraiment côté backend) | `grep -rE '(countdown\|expires\|expire-in\|hh:mm:ss)' flows/*paywall*/` → 0 match SAUF dans la cell `paywall-welcome-offer` qui a un `data-hint="real-deadline"` |
+| HON-5 | **Aucun social proof inventé** (user counts sans source, faux testimonials, faux press mentions) sur les écrans onboarding/paywall | inspection des cells avec `.testimonial` / `.user-count` / `.press-mention` — chaque proof doit avoir un `data-hint="source:..."` qui pointe vers une source vérifiable (App Store review, lien press réel, etc.) OU être retiré |
