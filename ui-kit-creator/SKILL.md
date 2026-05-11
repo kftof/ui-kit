@@ -684,6 +684,123 @@ Localisation : `flows/<flow>/<page>.html` (cf. arborescence). Un Flow **ne défi
 - **Web mobile responsive** : frame 390×844 sans chrome natif
 - **Desktop app** : `.app-window` avec traffic lights macOS OU title bar Windows
 
+## ♿ Accessibilité mobile — WCAG 2.1 AA (obligatoire)
+
+Section critique pour les kits mobile. Les règles WCAG sont **obligatoires** côté kit (pas optionnelles "si on a le temps") — elles déterminent l'inclusivité du produit et conditionnent la validation App Store / Play Store sur les apps gouvernementales / médicales / éducatives.
+
+### Touch targets (taille minimum de zone tactile)
+
+| Plateforme | Minimum recommandé | Espacement minimum entre cibles |
+|---|---|---|
+| **iOS (Apple HIG)** | **44 × 44 points** | **8 pt** |
+| **Android (Material 3)** | **48 × 48 dp** | **8 dp** |
+| **Tablet / iPad** | 44 × 44 pt (idem mobile) | 8 pt |
+
+Dans le HTML du kit, exprimer ces tailles via tokens :
+- `--touch-target-min: 44px;` (variable de `tokens.css`)
+- Tous les boutons / rows cliquables / icon-buttons doivent satisfaire `min-height: var(--touch-target-min); min-width: var(--touch-target-min);`
+- **Icon-buttons** : si l'icône fait 24px, ajouter du padding pour atteindre 44/48 (`padding: 10px`)
+
+### Contraste de couleur (WCAG 2.1 AA)
+
+| Type d'élément | Ratio de contraste minimum |
+|---|---|
+| **Texte normal** (< 18pt OU < 14pt bold) | **4.5:1** |
+| **Texte large** (≥ 18pt OU ≥ 14pt bold) | **3:1** |
+| **UI components** (bordures de bouton, icônes interactives, focus rings) | **3:1** |
+| **Texte décoratif inactif** | Pas de minimum (mais ≥ 3:1 recommandé) |
+
+Pratique : vérifier toutes les paires de couleurs principales du `tokens.css` :
+- `--text` sur `--bg`
+- `--text-muted` sur `--bg`
+- `--text` sur `--surface`
+- `--primary` (couleur de bouton CTA) sur `--bg` ET sur `--surface`
+- `--text-on-primary` sur `--primary`
+- Dark mode : refaire la check sur les paires dark equivalentes
+
+Outils : Chrome DevTools (panneau Accessibility), [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/), ou script Python qui parse `tokens.css` et calcule mécaniquement les ratios.
+
+### Labels d'accessibilité (screen readers)
+
+Côté kit HTML, marquer les éléments interactifs avec un attribut sémantique consommé par les agents de code-gen pour générer `accessibilityLabel` (RN/Flutter), `contentDescription` (Android), `accessibilityLabel`/`accessibilityHint` (iOS) :
+
+```html
+<!-- Bouton iconique sans texte visible -->
+<button class="icon-btn"
+        data-a11y-label="Fermer la fenêtre"
+        data-nav-target="back" data-nav-back="true">
+  <svg data-asset="ds/assets/icons/x.svg" width="24" height="24">…</svg>
+</button>
+
+<!-- Image décorative à ignorer par les screen readers -->
+<img src="ds/assets/illustrations/decoration-blob.svg"
+     data-a11y-hidden="true"
+     alt="">
+
+<!-- Élément avec rôle implicite explicité -->
+<div class="tab-item" role="tab" aria-selected="true"
+     data-a11y-label="Onglet Accueil, sélectionné">
+  Accueil
+</div>
+```
+
+Convention `data-a11y-*` (ajouts machine-readable consommables par les outils de code-gen) :
+- `data-a11y-label="<texte>"` : texte lu par le screen reader (équivalent `accessibilityLabel` mobile / `aria-label` web)
+- `data-a11y-hint="<texte>"` : indication supplémentaire pour l'utilisateur (équivalent `accessibilityHint` iOS / `accessibilityActions` Android)
+- `data-a11y-hidden="true"` : élément ignoré par les screen readers (images décoratives, séparateurs visuels)
+- `data-a11y-role="<role>"` : rôle ARIA explicite (button, tab, header, alert, etc.) quand le markup natif ne le précise pas
+
+### Ordre de focus logique
+
+- Top-to-bottom, left-to-right (ordre de lecture occidental)
+- Pas de tab index custom sauf cas exceptionnel (et alors documenter dans `GUIDELINES.md`)
+- Les modals / dialogs : focus trappé dans le modal, retour au déclencheur à la fermeture
+- Pas de "skip nav" sur mobile (pas applicable, pas de nav primaire à skipper comme sur web)
+
+### Annonces dynamiques
+
+Pour les changements de contenu non liés à un focus (toast, snackbar, badge mis à jour), poser :
+```html
+<div class="toast" data-a11y-live="polite">
+  Tâche ajoutée à ta liste
+</div>
+```
+
+- `data-a11y-live="polite"` : annoncé après les actions courantes (toasts, notifications passives)
+- `data-a11y-live="assertive"` : interrompt l'utilisateur (erreurs critiques, alerts)
+- Réservé aux cas vraiment importants — `assertive` agressif érode l'usabilité
+
+### Validation au moment du build
+
+Script d'audit à exécuter en fin d'étape 9 (auto-audit final) :
+
+```bash
+# Touch targets : tous les éléments interactifs doivent respecter min-size
+grep -E '(\.btn|\.tab-item|\.icon-btn|button|<a |role="button")' flows/**/*.html
+# → vérifier visuellement que chaque match a au moins 44px de hauteur dans le rendu
+
+# Contraste : extraction des paires de couleurs du tokens.css
+grep -E '^\s*--(primary|text|bg|surface)' ds/tokens.css
+# → calculer mécaniquement les ratios entre paires utilisées
+
+# Labels manquants : icon-buttons sans data-a11y-label
+grep -rE '<button[^>]*class="[^"]*\b(icon-btn|nav-action)\b' flows/ | grep -v 'data-a11y-label'
+# → 0 match attendu
+
+# Images sans alt + sans data-a11y-hidden
+grep -rE '<img[^>]+>' flows/ | grep -v 'alt=' | grep -v 'data-a11y-hidden'
+# → 0 match attendu
+```
+
+### Anti-patterns mobile a11y
+
+- **Boutons fantômes** sans `data-a11y-label` ni texte visible (juste une icône)
+- **Texte sur image / sur gradient** sans vérification de contraste réel
+- **Couleur comme seul porteur d'information** (un dot rouge / vert pour status — ajouter un icon différent ou un label)
+- **Animations clignotantes / flashing** (> 3 fois par seconde — risque épileptique, WCAG fail)
+- **Polices < 11pt sur mobile** (illisible pour les utilisateurs avec presbytie)
+- **Targets de 24×24 sans padding** (icône réelle ≠ zone tactile, la zone tactile doit faire ≥ 44/48)
+
 ## 🏷️ Conventions sémantiques machine-readable
 
 En plus de `data-asset` (matching asset → fichier source) et `data-screen-label` (états des cells), trois conventions sémantiques permettent aux outils de code-gen de générer du Dart/Swift/Kotlin pertinent au lieu de coder aveuglément ce qu'ils voient.
@@ -1283,7 +1400,7 @@ Le repo `ui-kit` inclut un dossier `playbooks/` à la racine avec 3 doctrines ac
 L'ordre est strict — le DS doit exister **avant** que le premier Flow soit écrit.
 
 1. **Poser les 10 questions** (ou valider les infos fournies)
-2. **Proposer 3 directions visuelles** en 2 phrases chacune (ton, palette, typo) — faire choisir
+2. **Proposer 3 directions visuelles** en 2 phrases chacune (ton, palette, typo, **style nommé** parmi le catalogue de `playbooks/03-conversion-psychology.md` §5 — Liquid Glass / Glassmorphism / Claymorphism / Skeuomorphism / Brutalism / Swiss Minimalism / Editorial / Cyberpunk / Hand-drawn Sketch / Material Expressive / Dark Mode First / Y2K / Solarized / Bento Grid) — faire choisir. Le style nommé sert d'ancrage commun entre toi, le user, et l'agent codeur. UN seul style dominant retenu.
 2.5. **Consulter les playbooks pertinents** selon le scope déclaré aux étapes 1-2 (onboarding ? paywall ? core loop ? écran de fierté sharable ?). Lire `playbooks/0X-*.md` pertinents pour internaliser les règles **avant** d'écrire les écrans concernés.
 3. **Créer `ds/tokens.css`** complet (couleurs, type, spacing, radii, shadows, motion). Pour les fonts : déclarer les variables (`--font-display`, `--font-body`) et l'échelle, MAIS pas encore les `@font-face` — ils sont écrits à l'étape 3.5 après le téléchargement des fichiers.
 
