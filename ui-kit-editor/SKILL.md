@@ -107,6 +107,8 @@ Avant toute modif, **lire le kit** pour extraire :
 
 Le repo `ui-kit` inclut `playbooks/01-onboarding-paywall.md`, `playbooks/02-engagement-virality.md`, `playbooks/03-conversion-psychology.md` — doctrines actionables sur les flows critiques (onboarding, paywall, sharable moments, demande d'avis, settings standardisés, psychologie de conversion). À consulter quand la modif touche un de ces flows pour appliquer / préserver les règles. Le skill complémentaire `ui-kit-audit` produit un rapport `Audit.md` qui évalue le kit contre ces playbooks — invoquer avant ET après les modifs stratégiques pour mesurer l'impact.
 
+**Résolution du path des playbooks** (ordre de priorité) : `~/.claude/skills/playbooks/0X-*.md` → `<repo cloné>/playbooks/0X-*.md` → demander à l'utilisateur si rien trouvé.
+
 Ne jamais sauter cette phase. Les erreurs les plus courantes viennent de suppositions sur ce qui existe déjà dans `ds/`.
 
 ### Phase 2 — Plan

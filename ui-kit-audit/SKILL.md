@@ -43,7 +43,10 @@ description: Audite un UI kit HTML existant contre les 3 playbooks de stratégie
    - Lire `README.md` + `PRD.md` (si présent) — chercher des mots-clés (méditation, fitness, productivité, finance, dating, etc.)
    - Si ambigu → demander à l'utilisateur en une question avant de lancer l'audit
 
-3. **Charger les playbooks demandés** depuis `<chemin du repo ui-kit>/playbooks/0X-*.md`. Si le repo n'est pas accessible, demander à l'utilisateur de le pointer.
+3. **Charger les playbooks demandés** — ordre de résolution :
+   1. `~/.claude/skills/playbooks/0X-*.md` (location canonique, installée à côté des skills)
+   2. `<repo cloné>/playbooks/0X-*.md` (typiquement `~/Dev/ui-kit/playbooks/` ou autre clone du repo `kftof/ui-kit`)
+   3. Si rien trouvé : demander à l'utilisateur de pointer le path du repo ui-kit OU de copier les playbooks dans `~/.claude/skills/playbooks/` via `cp -r <repo>/playbooks ~/.claude/skills/`
 
 ### Phase 2 — Évaluation critère par critère
 

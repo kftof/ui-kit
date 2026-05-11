@@ -18,10 +18,15 @@ Ces skills produisent des kits **machine-readable** : conventions explicites sur
 
 ```bash
 git clone https://github.com/kftof/ui-kit.git
+
+# 1) Copier les 7 skills
 cp -r ui-kit/ui-kit-* ~/.claude/skills/
+
+# 2) Copier le dossier playbooks (consommé par creator / editor / audit)
+cp -r ui-kit/playbooks ~/.claude/skills/
 ```
 
-Claude détecte les skills automatiquement.
+Claude détecte les skills automatiquement. Les playbooks sont chargés à la demande par les skills concernés depuis `~/.claude/skills/playbooks/` (avec fallback sur le repo cloné si présent).
 
 ## Arborescence d'un kit généré
 

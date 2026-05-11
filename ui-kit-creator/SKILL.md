@@ -1401,7 +1401,12 @@ L'ordre est strict — le DS doit exister **avant** que le premier Flow soit éc
 
 1. **Poser les 10 questions** (ou valider les infos fournies)
 2. **Proposer 3 directions visuelles** en 2 phrases chacune (ton, palette, typo, **style nommé** parmi le catalogue de `playbooks/03-conversion-psychology.md` §5 — Liquid Glass / Glassmorphism / Claymorphism / Skeuomorphism / Brutalism / Swiss Minimalism / Editorial / Cyberpunk / Hand-drawn Sketch / Material Expressive / Dark Mode First / Y2K / Solarized / Bento Grid) — faire choisir. Le style nommé sert d'ancrage commun entre toi, le user, et l'agent codeur. UN seul style dominant retenu.
-2.5. **Consulter les playbooks pertinents** selon le scope déclaré aux étapes 1-2 (onboarding ? paywall ? core loop ? écran de fierté sharable ?). Lire `playbooks/0X-*.md` pertinents pour internaliser les règles **avant** d'écrire les écrans concernés.
+2.5. **Consulter les playbooks pertinents** selon le scope déclaré aux étapes 1-2 (onboarding ? paywall ? core loop ? écran de fierté sharable ?). Lire les `playbooks/0X-*.md` pertinents pour internaliser les règles **avant** d'écrire les écrans concernés.
+
+   **Résolution du path des playbooks** (ordre de priorité) :
+   1. `~/.claude/skills/playbooks/0X-*.md` (location canonique, installée à côté des skills via `cp -r <repo>/playbooks ~/.claude/skills/`)
+   2. `<repo cloné>/playbooks/0X-*.md` (typiquement `~/Dev/ui-kit/playbooks/`)
+   3. Si rien trouvé : demander à l'utilisateur de pointer le path OU de faire l'installation (`cp -r ui-kit/playbooks ~/.claude/skills/`)
 3. **Créer `ds/tokens.css`** complet (couleurs, type, spacing, radii, shadows, motion). Pour les fonts : déclarer les variables (`--font-display`, `--font-body`) et l'échelle, MAIS pas encore les `@font-face` — ils sont écrits à l'étape 3.5 après le téléchargement des fichiers.
 
 3.5. **Télécharger les fonts dans `ds/assets/fonts/<font>/` (woff2 + ttf)** — étape obligatoire. Le mockup HTML utilise woff2 (léger), Flutter / iOS native / Android native exigent du ttf. Ship les **deux formats** depuis la source officielle, **jamais** `@import` Google Fonts CDN dans un kit livré (force dev à dépendre de la CDN, casse offline, Flutter ne lit pas le woff2).
