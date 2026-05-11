@@ -34,6 +34,18 @@ Format minimum du brief (3 infos suffisent) :
 
 L'utilisateur n'a pas besoin de fournir des refs visuelles, mood-board, palette ou typo : tout vient des `ds/tokens.css` existants. Le skill choisit la direction visuelle dans le cadre des tokens du DS.
 
+## 📋 Lecture du PRD — règle obligatoire (anti-hallucination du brief brand)
+
+Avant de proposer des directions logo, le skill **doit** :
+
+1. **Chercher le PRD** : `<kit-root>/PRD.md` → `<kit-root>/PRD_*.md` → `<kit-root>/docs/PRD.md` → `<kit-root>/../PRD.md` (parent) → `<kit-root>/README.md`. Le PRD donne le **ton du produit** (chaleureux / techy / pro / niche) qui détermine la direction visuelle.
+2. **Si trouvé** → lire intégralement (au moins la section "Produit / Vision / Tone of voice"). Le brand généré doit refléter ce ton, pas un ton inventé.
+3. **Si AUCUN PRD** → demander à l'utilisateur :
+
+   > "Je n'ai pas trouvé de PRD pour ce projet. Pour proposer des directions logo cohérentes : **(a)** Tu déposes un `PRD.md` (au moins une section "ton / niche"). **(b)** Tu confirmes qu'il n'y a pas de PRD — alors décris-moi en une phrase le ton voulu (ex: 'chaleureux nostalgique', 'techy clean dark-first', 'pro institutionnel'). **(c)** Tu pointes un autre path."
+
+4. **Cas (b)** : utiliser la phrase de description fournie comme brief brand, exclusivement. Ne rien inventer au-delà.
+
 ## 🧭 Workflow
 
 ### Phase 1 — Reconnaissance

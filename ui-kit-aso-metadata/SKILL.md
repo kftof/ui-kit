@@ -56,6 +56,18 @@ Validation obligatoire — toute soumission qui dépasse est rejetée par Apple.
 
 ⚠️ Pas de "keywords" séparés sur Play Store — l'algorithme indexe directement la full description. Bourrer des mots-clés explicites est pénalisé.
 
+## 📋 Lecture du PRD — règle obligatoire (anti-hallucination du brief produit)
+
+Avant de générer les wordings ASO, le skill **doit** :
+
+1. **Chercher le PRD** : `<kit-root>/PRD.md` → `<kit-root>/PRD_*.md` → `<kit-root>/docs/PRD.md` → `<kit-root>/../PRD.md` (parent) → `<kit-root>/README.md`. Le PRD donne les **bénéfices réels** du produit qui doivent apparaître dans la fiche store — pas des bénéfices inventés.
+2. **Si trouvé** → lire intégralement. Les features mentionnées dans la Description / Subtitle / Keywords doivent **toutes** être présentes dans le PRD. Aucune feature inventée pour faire joli.
+3. **Si AUCUN PRD** → demander à l'utilisateur :
+
+   > "Je n'ai pas trouvé de PRD pour ce projet. Sans PRD, je risque d'inventer des bénéfices qui ne sont pas dans le produit. **(a)** Tu déposes un `PRD.md` à la racine. **(b)** Tu confirmes qu'il n'y a pas de PRD — alors décris-moi en 3-5 bullets les features réelles et le tone of voice voulu. **(c)** Tu pointes un autre path."
+
+4. **Cas (b)** : utiliser uniquement les features fournies par l'utilisateur. Ne rien inventer au-delà — mieux vaut une description courte mais juste qu'une description longue avec des promesses non tenues (qui font fuir + risque rejet App Store §6 du playbook 1 HON-1).
+
 ## 🧭 Workflow
 
 ### Phase 1 — Reconnaissance du kit

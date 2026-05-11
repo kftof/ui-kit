@@ -84,6 +84,25 @@ Symptômes typiques sur kits anciens :
 
 C'est une organisation obsolète. Le UI Kit doit être une **page unique** qui regroupe tokens + composants + icônes. Si tu rencontres ce split, proposer la consolidation en page unique (cf. recette dédiée).
 
+## 📋 Lecture du PRD — règle obligatoire (anti-hallucination)
+
+Avant toute modification, le skill **doit** :
+
+1. **Chercher le PRD** dans (ordre de priorité) : `<kit-root>/PRD.md` → `<kit-root>/PRD_*.md` → `<kit-root>/docs/PRD.md` → `<kit-root>/../PRD.md` (parent dir) → `<kit-root>/README.md`.
+2. **Si trouvé** → **lire intégralement** avant toute action. Le PRD est la source de vérité du brief produit. Aucune feature ou modif inventée au-delà du PRD. Toute modif demandée qui contredit le PRD doit être signalée à l'utilisateur avant exécution.
+3. **Si AUCUN PRD trouvé** → demander à l'utilisateur :
+
+   > "Je n'ai pas trouvé de PRD dans ce projet. Pour éviter d'halluciner :
+   > **(a)** Tu déposes un `PRD.md` à la racine du kit, je le lis et on continue.
+   > **(b)** Tu confirmes qu'il n'y a pas de PRD — je m'appuierai uniquement sur ton prompt + `README.md` + flows existants.
+   > **(c)** Tu pointes un autre path."
+
+   Attendre la réponse. **Pas de best-effort silencieux**.
+
+4. **Cas (b) — pas de PRD** : continuer en s'appuyant uniquement sur prompt + README + GUIDELINES + inventaire des flows existants du kit. Ne rien inventer au-delà.
+
+5. **PRD vs playbooks** : si un fix de l'`Audit.md` contredit le PRD (ex: critère PW-3 demande un trial alors que le PRD dit "pas de trial"), respecter le PRD et marquer le critère `n/a` dans le rapport ; **pas `fail` à fixer**.
+
 ## 🧭 Workflow en 4 phases
 
 ### Phase 1 — Reconnaissance (obligatoire)

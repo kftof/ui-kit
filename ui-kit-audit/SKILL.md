@@ -28,6 +28,18 @@ description: Audite un UI kit HTML existant contre les 3 playbooks de stratégie
 2. **Liste de playbooks à appliquer** — par défaut, les 3. Possibilités : `["01"]` (onboarding/paywall seul), `["02"]` (engagement seul), `["03"]` (psycho seul), ou combinaisons.
 3. **Niche déclarée** — pour le mapping §4.1 du playbook 3 (méditation / fitness / fintech / etc.). Si absente, le skill tente de l'inférer depuis `README.md` / `PRD.md` du kit.
 
+## 📋 Lecture du PRD — règle obligatoire (anti-hallucination + base des `n/a`)
+
+Avant d'évaluer, le skill **doit** :
+
+1. **Chercher le PRD** : `<kit-root>/PRD.md` → `<kit-root>/PRD_*.md` → `<kit-root>/docs/PRD.md` → `<kit-root>/../PRD.md` (parent) → `<kit-root>/README.md`.
+2. **Si trouvé** → **lire intégralement**. Le PRD sert de **référence pour marquer les critères `n/a`** : un critère qui contredit explicitement le PRD est `n/a` avec mention "contre-indication PRD §X", **pas `fail`**. Exemple : si le PRD dit "pas de trial gratuit (modèle freemium pur)", le critère PW-3 (trial proposé) devient `n/a` avec justification, pas un fail à corriger.
+3. **Si AUCUN PRD trouvé** → demander à l'utilisateur :
+
+   > "Je n'ai pas trouvé de PRD pour ce projet. Sans PRD, je risque de marquer en `fail` des critères qui sont en fait justifiés par un brief produit que je n'ai pas vu. **(a)** Tu déposes un `PRD.md` à la racine du kit. **(b)** Tu confirmes qu'il n'y a pas de PRD — j'auditerai contre les playbooks par défaut sans `n/a` contextuel. **(c)** Tu pointes un autre path."
+
+4. **Cas (b)** : auditer normalement contre les playbooks. Les critères qui ne s'appliquent objectivement pas (ex: pas de paywall dans le kit) restent en `n/a` comme avant.
+
 ## 🧭 Workflow
 
 ### Phase 1 — Reconnaissance du kit

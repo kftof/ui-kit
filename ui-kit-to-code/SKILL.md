@@ -34,6 +34,18 @@ Transforme une maquette HTML hi-fi en code production-ready dans le framework ci
 
 **Si le kit a une organisation obsolète** (Components.html / Icons.html séparés, sprite externe `<use href="ds/assets/icons/icons.svg#…"/>`, SVG inline sans `data-asset`, assets directement sous `ds/icons/` au lieu de `ds/assets/icons/`, flows à la racine au lieu de `flows/<flow>/<page>.html`, paths SVG approximés) : signaler à l'utilisateur et proposer une consolidation préalable via le skill `ui-kit-editor` (recette "Consolider un kit non-DRY"). Le mapping sera moins fiable sinon — sans `data-asset`, il faut tenter un matching approximatif sur les paths SVG, peu fiable.
 
+## 📋 Lecture du PRD — règle obligatoire (anti-hallucination)
+
+Avant de générer du code, le skill **doit** :
+
+1. **Chercher le PRD** : `<kit-root>/PRD.md` → `<kit-root>/PRD_*.md` → `<kit-root>/docs/PRD.md` → `<kit-root>/../PRD.md` (parent) → `<kit-root>/README.md`. Le PRD donne la **logique métier** que les écrans matérialisent — sans cela l'agent codeur peut générer une UI correcte mais brancher la mauvaise logique.
+2. **Si trouvé** → lire intégralement (au moins les sections "Features", "API contract" si présent, "Parcours utilisateur"). Le code généré doit respecter cette logique, pas l'inventer.
+3. **Si AUCUN PRD** → demander à l'utilisateur :
+
+   > "Je n'ai pas trouvé de PRD pour ce projet. Le code généré risque de mocker la logique métier de façon plausible mais fausse. **(a)** Tu déposes un `PRD.md`. **(b)** Tu confirmes qu'il n'y a pas de PRD — je m'appuierai uniquement sur les conventions sémantiques (`data-uses`, `data-nav-target`, `data-api-call`, `data-hint`) posées dans le HTML + ton prompt actuel. **(c)** Tu pointes un autre path."
+
+4. **Cas (b)** : générer du code en s'appuyant **strictement** sur les conventions sémantiques machine-readable du kit. Pour toute logique non couverte par ces attributs (ex: comportement d'un cubit complexe, règle métier de validation), poser un `TODO(prd-needed): ...` dans le code généré et signaler explicitement à l'utilisateur. Ne pas inventer la logique.
+
 ## 🧭 Règles d'or
 
 1. **Ne jamais hardcoder** une valeur de design → toujours token/variable

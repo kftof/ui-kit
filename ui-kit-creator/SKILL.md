@@ -14,6 +14,25 @@ Crée un design system + kit HTML complet pour un nouveau projet, depuis zéro. 
 - Rebranding complet
 - Proof of concept visuel avant dev
 
+## 📋 Lecture du PRD — règle obligatoire (anti-hallucination)
+
+Avant toute action sur le kit, le skill **doit** :
+
+1. **Chercher le PRD** dans (ordre de priorité) : `<kit-root>/PRD.md` → `<kit-root>/PRD_*.md` (ex: `PRD_M1.md`, `PRD_v1.md`) → `<kit-root>/docs/PRD.md` → `<kit-root>/../PRD.md` (parent dir, cas où le kit est sous-dossier du projet) → `<kit-root>/README.md` (souvent contient le brief).
+2. **Si trouvé** → **lire intégralement** avant toute génération. Le PRD est la source de vérité du brief (features, niche, ton, contraintes, pricing, parcours user). **Aucune feature inventée** au-delà du PRD. Aucune contradiction du PRD non signalée explicitement à l'utilisateur.
+3. **Si AUCUN PRD trouvé** → ne PAS continuer en hallucinant. Poser cette question courte à l'utilisateur :
+
+   > "Je n'ai pas trouvé de PRD dans ce projet. Pour éviter d'halluciner le brief :
+   > **(a)** Tu déposes un `PRD.md` à la racine du kit, je le lis et on continue.
+   > **(b)** Tu confirmes qu'il n'y a pas de PRD pour ce projet — je m'appuierai uniquement sur ton prompt actuel + `README.md` du kit.
+   > **(c)** Tu pointes un autre path où trouver le PRD."
+
+   Attendre la réponse. **Pas de best-effort silencieux** sur du contenu produit absent.
+
+4. **Cas (b) — pas de PRD confirmé** : continuer en s'appuyant **uniquement** sur le prompt utilisateur + `README.md` + `GUIDELINES.md` / `CLAUDE_SKILLS.md` du kit s'ils existent + inventaire des flows existants. **Ne rien inventer au-delà** de ces sources.
+
+5. **Hiérarchie de décision** : si le PRD contredit une recommandation des playbooks (ex: "trial 14 jours" alors que playbook 1 §4.2 recommande 3 jours), **le PRD prime**. Mention explicite dans la sortie : "Trial 14 jours selon PRD §X, playbook 1 §4.2 recommanderait 3 jours par défaut — j'ai suivi le PRD."
+
 ## 📋 Inputs requis (questions à poser si absents)
 
 1. **Nom du produit** + description en 1 phrase

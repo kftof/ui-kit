@@ -23,6 +23,17 @@ Transforme un kit HTML statique (grille canvas avec phones côte-à-côte) en **
 2. **Écran d'entrée** (par défaut : premier flow lexicographique × première page × premier état)
 3. **Mode d'affichage** : `desktop` (sidebar visible, par défaut) ou `presentation` (fullscreen, sidebar masquable via touche `S`)
 
+## 📋 Lecture du PRD — recommandée (non bloquante pour ce skill)
+
+Contrairement aux autres skills `ui-kit-*`, le prototype **génère pas de contenu produit** — il assemble juste les écrans existants en navigation cliquable. Donc la lecture du PRD n'est pas bloquante.
+
+Cependant, si un `PRD.md` existe dans le kit (`<kit-root>/PRD.md` ou variants), le lire rapidement aide à :
+- Choisir un screen d'entrée pertinent (ex: si le PRD dit "wow moment = écran X", démarrer le prototype sur X)
+- Documenter dans le rapport de génération les flows que le PRD considère comme prioritaires
+- Détecter des écrans manquants côté kit que le PRD mentionne
+
+Si pas de PRD : continuer normalement, le prototype reflète l'état actuel des flows du kit.
+
 ## 🧭 Workflow
 
 ### Phase 1 — Reconnaissance
