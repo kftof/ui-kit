@@ -6,12 +6,20 @@ Un design beau ne suffit pas — il doit être **persuasif**. Les patterns ci-de
 
 Règles **actionables**, numérotées pour référence directe.
 
+> ⚠️ **Hiérarchie de décision — le PRD prime sur le playbook**
+>
+> Les valeurs concrètes (durée d'onboarding, nombre d'étapes, mapping niche→palette, etc.) sont des recommandations par défaut. **Le PRD du projet en cours prime** : si le brief stipule un onboarding court ou un style visuel particulier, le PRD gagne, pas le playbook. Côté audit, un critère qui contredit le PRD est marqué `n/a` avec mention "contre-indication PRD §X" — **pas** `fail`.
+
+> 🎨 **Rappel — on fait des MAQUETTES UI, pas du templating code**
+>
+> Aucun placeholder `{{...}}` visible dans le HTML. Les valeurs variables (prix, réponses user, contenus dynamiques) sont affichées avec une **valeur concrète** dans la maquette + un `data-hint="..."` pour signaler aux agents de code-gen la nature paramétrable.
+
 ---
 
 ## 1. Design de l'onboarding comme tunnel de vente
 
 ### 1.1 Aversion à la perte intégrée au design
-- Concevoir un onboarding **long et engageant** (10-15 minutes) — chaque étape investit l'utilisateur émotionnellement
+- Concevoir un onboarding **long et engageant** (recommandation par défaut 10-15 minutes — modifiable selon PRD). Chaque étape investit l'utilisateur émotionnellement
 - Pattern visuel : barre de progression visible mais qui avance lentement, donnant l'impression d'un parcours significatif
 - Le user qui voit "Étape 8/12" après 5 min ne lâche pas — il veut compléter
 
@@ -181,7 +189,7 @@ Liste binaire utilisée par `ui-kit-audit` pour évaluer un kit. Chaque critère
 
 | ID | Critère | Où chercher |
 |---|---|---|
-| OB-V1 | Onboarding contient ≥ 8 étapes / écrans (assume aversion à la perte) | comptage cells dans `flows/*onboarding*` |
+| OB-V1 | Onboarding contient ≥ 8 étapes / écrans (recommandation par défaut — aversion à la perte) **OU** durée plus courte explicitement justifiée par le PRD | comptage cells dans `flows/*onboarding*` ; si < 8, vérifier le PRD — `n/a` si PRD contre-indique |
 | OB-V2 | Barre de progression visible pendant l'onboarding | grep progress / step indicator |
 | OB-V3 | Effet miroir : placeholders / `data-hint="reuse:..."` présents | grep placeholders dans cells post-questions |
 | OB-V4 | Au moins un écran avec stat ou prise de conscience en typo display | font-size ≥ display-xl + texte court |

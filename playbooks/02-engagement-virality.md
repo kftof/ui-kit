@@ -6,6 +6,14 @@ Une "breakout app" se construit en protégeant le flux à tout prix : moins de f
 
 Règles **actionables**, numérotées pour référence directe.
 
+> ⚠️ **Hiérarchie de décision — le PRD prime sur le playbook**
+>
+> Les recommandations ci-dessous (streaks, push notifs, demande d'avis au pic émotionnel, etc.) sont des **patterns par défaut** d'apps haute rétention. **Si le PRD du projet en cours en contre-indique** (ex: produit B2B sans gamification, app éphémère sans rétention long terme), le PRD prime. Côté audit, un critère qui contredit le PRD est marqué `n/a` avec mention "contre-indication PRD §X" — **pas** `fail`.
+
+> 🎨 **Rappel — on fait des MAQUETTES UI, pas du templating code**
+>
+> Aucun placeholder `{{...}}` visible dans le HTML. Valeurs variables (compteurs, contenus dynamiques) affichées concrètement + `data-hint="..."` pour signaler la nature paramétrable.
+
 ---
 
 ## 1. Core Loop — éliminer la friction d'accès à la valeur

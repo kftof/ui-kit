@@ -4,6 +4,16 @@ Doctrine pour transformer un onboarding + paywall en **tunnel de vente** plutôt
 
 Règles **actionables**, numérotées pour référence directe (§1.1, §4.2…). Pas de templates HTML — c'est le rôle du `ui-kit-creator` de matérialiser ces règles dans des écrans concrets adaptés au produit.
 
+> ⚠️ **Hiérarchie de décision — le PRD prime sur le playbook**
+>
+> Les valeurs concrètes mentionnées ici (durée d'onboarding 10-15 min, trial 3 jours, ≤ 3 options de prix, etc.) sont des **recommandations par défaut** issues d'apps haute conversion. **Le PRD du projet en cours prime systématiquement** : si le brief dit "trial 7 jours" ou "pas de trial du tout", c'est le PRD qui gagne, pas le playbook.
+>
+> Idem côté audit : un critère qui contredit explicitement le PRD doit être marqué `n/a` avec mention "contre-indication PRD §X", **pas** `fail`. Le playbook est un guide, pas une contrainte juridique.
+
+> 🎨 **Rappel — on fait des MAQUETTES UI, pas du templating code**
+>
+> Quand une règle évoque une donnée variable (prix, réponse user, durée), la **maquette HTML doit contenir une valeur concrète** (ex: "9,99 €/mois", "Réponse type : *gagner du temps*"). La nature variable est signalée aux agents de code-gen via `data-hint="..."` (qui ne s'affiche pas visuellement). **Aucun placeholder de templating type `{{xxx}}` ne doit apparaître dans le HTML visible** — c'est un bug d'agent qui produit une maquette inutilisable.
+
 ---
 
 ## 1. Onboarding — Introduction (cadrage psychologique)
@@ -29,10 +39,11 @@ Règles **actionables**, numérotées pour référence directe (§1.1, §4.2…)
 - Format : "Nous préparons votre plan pour `<réponse user>`"
 - Donne l'illusion d'une expérience personnalisée — coût zéro côté backend (juste du templating client-side)
 
-### 1.5 Aversion à la perte — assumer un onboarding LONG (10-15 min)
+### 1.5 Aversion à la perte — assumer un onboarding LONG (recommandation 10-15 min, à arbitrer selon PRD)
 - Contre-intuitif mais vérifié : un onboarding long **triple à quintuple** le taux de conversion
 - L'utilisateur qui a investi 12 minutes ne veut pas avoir "perdu son temps" — il essaie le produit, paye plus facilement
 - Implication design : pas de "skip" visible sur les écrans intermédiaires (la friction est volontaire)
+- **Si le PRD stipule un onboarding court** (ex: outil pro où la friction est interdite par la nature du produit), respecter le PRD — l'aversion à la perte n'est qu'un levier parmi d'autres
 
 ---
 
@@ -77,10 +88,11 @@ Règles **actionables**, numérotées pour référence directe (§1.1, §4.2…)
 - **Abandonner les lifetime deals** : préfère la croissance du revenu récurrent (MRR) au cash one-shot
 - Maximum 2-3 options visibles (paralysie de décision au-delà)
 
-### 4.2 Trial 3 jours par défaut
+### 4.2 Trial gratuit (recommandation 3 jours, à arbitrer selon PRD)
 - Réduit la peur de l'engagement ("j'essaie sans risque")
 - 70 % des activations trial se produisent **juste après l'onboarding** — fenêtre étroite, ne pas la rater
-- Trial 7 jours acceptable pour des produits à courbe d'apprentissage longue (apps de fitness, méditation), mais 3 jours convertit mieux en général
+- Durée recommandée par défaut : **3 jours** (convertit mieux en général). **7 jours** acceptable pour produits à courbe d'apprentissage longue (fitness, méditation, écriture)
+- **Si le PRD dit "pas de trial"** ou stipule une durée précise (ex: 14 jours pour B2B) : respecter le PRD, ne pas surcharger avec la recommandation par défaut
 
 ### 4.3 Rappel "1 jour avant fin trial" (case toggle visible)
 - Option proactive permettant à l'utilisateur de **recevoir un rappel** la veille de la facturation
@@ -139,7 +151,7 @@ Règles **actionables**, numérotées pour référence directe (§1.1, §4.2…)
 ### 5.6 Localization / pricing PPP-adjusted
 - Pricing ajusté à la parité de pouvoir d'achat (Purchasing Power Parity) selon le pays — un abonnement à $9.99/mois US ne se vend pas à $9.99 en Turquie ou Argentine
 - Apps en croissance 2026 : Europe (+18% YoY), Japon, Mexique, Turquie
-- Implication kit : prévoir une variable `{{price_localized}}` dans le texte du paywall plutôt qu'un prix en dur — l'agent de code-gen branchera sur le SDK paywall (RevenueCat / Adapty / StoreKit2)
+- Implication kit : afficher un **prix concret** dans la maquette HTML (ex: "9,99 €/mois" pour le marché FR) ET poser `data-hint="price-PPP-adjusted-per-market"` sur la cell du prix. C'est cet attribut (non visible) qui signale à l'agent de code-gen de brancher le pricing sur le SDK paywall (RevenueCat / Adapty / StoreKit2). **Surtout pas** de placeholder `{{...}}` visible dans la maquette — c'est un bug d'agent.
 - Localiser **aussi** les wordings (pas seulement le prix) selon le marché
 
 ### 5.7 AI-powered personalization du paywall
@@ -225,7 +237,7 @@ Liste binaire utilisée par `ui-kit-audit` pour évaluer un kit. Chaque critère
 | OB-1 | Problème + solution exprimés dans les 3 premiers écrans onboarding | `flows/*onboarding*/*.html` cells 1-3 |
 | OB-2 | Moment Aha (stat / prise de conscience) présent en début d'onboarding | grep texte choc / chiffre dans cells 1-3 |
 | OB-3 | Au moins 3 questions personnelles (choix multiple / échelle) | cells avec form / radio / range dans onboarding |
-| OB-4 | Effet miroir : réponses user réinjectées dans écrans suivants | présence de placeholders `{{answer_N}}` ou `data-hint="reuse:answer-N"` |
+| OB-4 | Effet miroir : réponses user réinjectées dans écrans suivants | la cell qui réutilise une réponse contient une **valeur d'exemple concrète** (ex: phrase type "*gagner du temps*" reprise de la question §1.4) ET porte `data-hint="reuse:answer-N"` qui signale aux agents de code-gen quelle réponse réinjecter. **Aucun `{{answer_N}}` visible** dans la maquette. |
 | OB-5 | Pas de skip visible sur les écrans intermédiaires de l'onboarding | grep "skip" / "passer" / "ignorer" dans onboarding |
 | OB-6 | Essai de la fonctionnalité phare AVANT paywall | cell onboarding avec interaction réelle (pas démo statique) |
 | OB-7 | Demande d'avis App Store au pic émotionnel (post-wow) | cell avec `data-uses="native:request-review"` ou équivalent |
@@ -235,7 +247,7 @@ Liste binaire utilisée par `ui-kit-audit` pour évaluer un kit. Chaque critère
 | OB-11 | Personalized plan loader entre dernière question onboarding et paywall ("Analyzing your preferences" + social proof inline) | cell intermédiaire avec progression animée + listing inputs collectés |
 | PW-1 | Structure de prix Weekly + Annual (≤ 3 options visibles) | paywall cell — count des options |
 | PW-2 | Aucun lifetime deal | grep "lifetime" / "à vie" |
-| PW-3 | Trial gratuit proposé (3 ou 7 jours) | grep "trial" / "essai gratuit" sur paywall |
+| PW-3 | Trial gratuit proposé sur le paywall **OU** absence justifiée par le PRD (ex: produit B2B sans trial, freemium pur, etc.) | grep "trial" / "essai gratuit" sur paywall ; si absent, vérifier le PRD pour justification — `n/a` si PRD contre-indique |
 | PW-4 | Toggle "rappel 1 jour avant fin trial" visible | cell paywall avec checkbox / switch dédié |
 | PW-5 | Preuve sociale (badges / avis) AVANT le CTA | placement avis/badges en haut du paywall |
 | PW-6 | Bouton de fermeture visible (pas caché) | grep close button / X icon avec taille tap ≥ 44px |
@@ -245,7 +257,7 @@ Liste binaire utilisée par `ui-kit-audit` pour évaluer un kit. Chaque critère
 | PW-10 | Soft-then-Hard paywall implémenté (2 écrans paywall : soft skippable pendant onboarding + hard sur usage feature) | présence de 2 cells paywall : `paywall-soft` (avec "Skip" visible) + `paywall-hard` |
 | PW-11 | Tableau comparatif Free vs Pro embedded sur le paywall (2 colonnes, 5-8 features ✓/✗) | cell paywall contient `.feature-table` ou `<table>` avec colonnes Free/Pro |
 | PW-12 | Paywall variant "welcome-offer" (post-close discount 24h ciblé) | cell `paywall-welcome-offer` avec badge discount + countdown 24h |
-| PW-13 | Prix paramétré (variable / placeholder), pas en dur — permet pricing PPP-adjusted | grep dans cell paywall : `{{price_localized}}` ou `data-hint="price localized PPP"` au lieu de "$9.99/mo" |
+| PW-13 | Pricing signalé comme **paramétrable** via `data-hint="price-PPP-adjusted-per-market"` sur la cell du prix (le HTML lui-même affiche un prix concret pour le marché principal — ex: "9,99 €/mois") | grep `data-hint=".*price.*PPP.*"` dans la cell paywall ; le prix affiché doit être un nombre concret (pas `{{...}}`) |
 | PW-14 | `data-hint` signalant un messaging dynamique / AI-personalized sur le paywall (si concept produit le justifie) | grep `data-hint=".*personnalisé.*"` ou `data-hint=".*dynamic.*"` sur le paywall |
 | HON-1 | **Aucune stat fake** non traçable (ex: "Selon l'INRAé, l'IFOP, Stanford…" sans source réelle) sur les écrans onboarding/paywall | `grep -rE '(INRAé\|IFOP\|Stanford\|Harvard\|Oxford\|MIT)' flows/*onboarding*/ flows/*paywall*/ "UI Kit.html"` → 0 match (ou présence d'une source vérifiée dans GUIDELINES.md) ; grep également des `%` non sourcés dans le texte |
 | HON-2 | **Aucun emoji émotionnel manipulateur** (💔 😢 🚨 🔥 😱) sur les écrans onboarding/paywall | `grep -rE '(💔\|😢\|🚨\|🔥\|😱\|😭)' flows/*onboarding*/ flows/*paywall*/` → 0 match |
