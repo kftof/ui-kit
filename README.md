@@ -10,7 +10,7 @@
 | [`ui-kit-editor`](ui-kit-editor/SKILL.md) | Modifier, étendre ou auditer un kit existant — recette dédiée pour fixer les fails d'un `Audit.md` + audit auto post-édition (intégrité structurelle). |
 | [`ui-kit-prototype`](ui-kit-prototype/SKILL.md) | Générer un prototype interactif style Figma à partir d'un kit (clics → navigation, transitions temporisées, sidebar, animations) |
 | [`ui-kit-brand-explorer`](ui-kit-brand-explorer/SKILL.md) | Explorer plusieurs directions logo (6 directions × 4 variantes), choisir, générer les 7 fichiers brand cohérents — neutre côté esthétique (suit le DS et le ton du brief, dark-first / sobre / chaleureux / technique selon le projet) |
-| [`ui-kit-audit`](ui-kit-audit/SKILL.md) | Auditer un kit contre les 3 playbooks de stratégie + critères WCAG mobile (83 critères au total) et produire un rapport `Audit.md` avec score, critères pass/fail/n-a + justification, recommandations prioritaires ordonnées. Diagnostic uniquement — pour corriger, enchaîner avec `ui-kit-editor`. |
+| [`ui-kit-audit`](ui-kit-audit/SKILL.md) | Auditer un kit contre les 3 playbooks de stratégie + critères WCAG mobile + intégrité structurelle (ST-*) + microcopy (MC-*) = **93 critères au total** et produire un rapport `Audit.md` avec score, critères pass/fail/n-a + justification, recommandations prioritaires ordonnées. Diagnostic uniquement — pour corriger, enchaîner avec `ui-kit-editor`. |
 | [`ui-kit-aso-metadata`](ui-kit-aso-metadata/SKILL.md) | **NEW** — Générer les textes de fiche App Store / Play Store haute conversion (App Name, Subtitle, Promo Text, Description, Keywords, What's New) avec validation stricte des limites Apple/Google, competitive analysis 3-5 concurrents, storyboard captures et Custom Product Pages. Livrable `ASO.md` (humain) + `ASO.json` (machine-readable, consommable CI/CD). Complémentaire de `aso-appstore-screenshots` qui gère les visuels. |
 | [`ui-kit-to-code`](ui-kit-to-code/SKILL.md) | Transformer une maquette HTML en code (React, Vue, Flutter, SwiftUI, Compose…) en lisant les conventions sémantiques pour générer du code idiomatique au lieu d'un mockup mort |
 
@@ -201,7 +201,7 @@ Le repo inclut un dossier [`playbooks/`](playbooks/) avec 3 doctrines actionable
 
 **Boucle d'usage typique** :
 1. `ui-kit-creator` lit les playbooks pertinents au scope du kit avant d'écrire les écrans → kit **pass-par-construction**
-2. `ui-kit-audit` évalue le kit a posteriori contre 49 critères binaires (18 + 17 + 14) et produit un rapport `Audit.md` à la racine
+2. `ui-kit-audit` évalue le kit a posteriori contre 93 critères (25 + 23 + 28 playbooks + 7 a11y WCAG + 6 intégrité ST-* + 4 microcopy MC-*) et produit un rapport `Audit.md` à la racine
 3. `ui-kit-editor` applique les fixes prioritaires identifiés (recette dédiée "Fixer les fails d'un Audit.md")
 4. Re-audit pour mesurer la progression du score entre versions (diff git de `Audit.md`)
 
