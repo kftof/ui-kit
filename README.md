@@ -1,11 +1,13 @@
 # UI Kit Skills
 
-**Version 1.15** — Skills pour [Claude Code](https://claude.com/claude-code), inspiré de [claude.ai/design](https://claude.ai/design).
+**Version 1.16** — Skills pour [Claude Code](https://claude.com/claude-code), inspiré de [claude.ai/design](https://claude.ai/design).
+
+> **Nouveau dans 1.16** : (1) lecture du PRD obligatoire en pré-flight (anti-hallucination), (2) anti-monoculture palette + section Wording/Microcopy dans `ui-kit-creator` (bannit le défaut paresseux "terracotta + warm neutral + serif vivante" et le jargon tech / mots vides), (3) **audit auto post-création/édition** (4 checks : HTML bien formé via tidy/xmllint, composants partagés, `UI Kit.html` sync, pages obligatoires Settings/About/Legal/Suggestions). Voir [Audit auto](#audit-auto-post-créationédition).
 
 | Skill | Usage |
 |---|---|
-| [`ui-kit-creator`](ui-kit-creator/SKILL.md) | Créer un UI kit HTML depuis zéro (DS + composants + flows + assets + 3 fichiers de doc templatés). Inclut une section Accessibilité mobile WCAG 2.1 AA avec convention `data-a11y-*` et un catalogue de 15 styles UI nommés (Liquid Glass / Glassmorphism / Brutalism / Hand-drawn Sketch / etc.) |
-| [`ui-kit-editor`](ui-kit-editor/SKILL.md) | Modifier, étendre ou auditer un kit existant — inclut une recette dédiée pour fixer les fails d'un `Audit.md` |
+| [`ui-kit-creator`](ui-kit-creator/SKILL.md) | Créer un UI kit HTML depuis zéro (DS + composants + flows + assets + 3 fichiers de doc templatés). Inclut Accessibilité WCAG 2.1 AA (`data-a11y-*`), catalogue de 15 styles UI nommés, scan anti-monoculture palette à l'étape 2, section Wording/Microcopy avec 8 règles et 4 grep d'audit. |
+| [`ui-kit-editor`](ui-kit-editor/SKILL.md) | Modifier, étendre ou auditer un kit existant — recette dédiée pour fixer les fails d'un `Audit.md` + audit auto post-édition (intégrité structurelle). |
 | [`ui-kit-prototype`](ui-kit-prototype/SKILL.md) | Générer un prototype interactif style Figma à partir d'un kit (clics → navigation, transitions temporisées, sidebar, animations) |
 | [`ui-kit-brand-explorer`](ui-kit-brand-explorer/SKILL.md) | Explorer plusieurs directions logo (6 directions × 4 variantes), choisir, générer les 7 fichiers brand cohérents — neutre côté esthétique (suit le DS et le ton du brief, dark-first / sobre / chaleureux / technique selon le projet) |
 | [`ui-kit-audit`](ui-kit-audit/SKILL.md) | Auditer un kit contre les 3 playbooks de stratégie + critères WCAG mobile (83 critères au total) et produire un rapport `Audit.md` avec score, critères pass/fail/n-a + justification, recommandations prioritaires ordonnées. Diagnostic uniquement — pour corriger, enchaîner avec `ui-kit-editor`. |
@@ -135,6 +137,21 @@ Les autres assets (brand / illustrations / images) utilisent `<img src="ds/asset
 | `data-api-call="<METHOD>:/path[;<METHOD>:/path...]"` | Élément / conteneur qui consomme un endpoint backend. Posé sur le conteneur le plus haut (typiquement `<main>` ou `.phone__screen`) ou sur un bouton qui POST/PUT/DELETE au tap. **Héritage parent + set union enfants**. Skip sous `data-os-chrome`. Format strict : `METHOD` ∈ `GET\|POST\|PUT\|PATCH\|DELETE`, path identique à l'OpenAPI, path params en `{name}`, multiples séparés par `;`, **pas de query string**. Permet au code-gen de générer paresseusement la couche data uniquement pour les endpoints réellement consommés. |
 
 Ces conventions permettent à un script `grep` ou un agent LLM de comprendre la **sémantique** des éléments (pas seulement leur visuel), ce qui change radicalement la qualité du code généré.
+
+## Audit auto post-création/édition
+
+`ui-kit-creator` (étape 15) et `ui-kit-editor` (avant toute livraison) exécutent désormais 4 checks d'intégrité structurelle, indépendants des audits stratégiques de `ui-kit-audit` :
+
+| Check | Vérifie | Outil |
+|---|---|---|
+| **A — Balises HTML** | Aucune balise manquante, orpheline ou mal fermée dans tous les `*.html` (invisible au browser mais casse `ui-kit-to-code` et autres outils de code-gen qui parsent en strict) | `tidy -errors -quiet` (fallback `xmllint --html --noout`) |
+| **B — Composants partagés** | Aucun `<style>` de widget dans les flows, aucun inline style répété ≥ 2×, aucune classe ad-hoc sans pendant dans `ds/components.css` | `grep` |
+| **C — UI Kit.html à jour** | Chaque widget consommé dans `flows/**/*.html` a sa cellule de doc dans `UI Kit.html` — sinon le kit ment et le dev code en aveugle | `grep` |
+| **D — Pages obligatoires** | Présence de Settings, About, Legal (CGU + Privacy), Suggestions (accessible depuis Settings via `data-nav-target`). Exclusion possible si justifiée dans `GUIDELINES.md` | `find` + `grep` |
+
+Tout fail bloque la livraison — corriger d'abord, ou documenter l'exclusion. Les commandes sont copiables/exécutables telles quelles dans chaque skill.
+
+S'ajoutent les checks pré-existants : anti-monoculture palette (compare `--primary` du nouveau kit aux kits déjà shippés dans `~/Dev`), audit wording (4 grep mots vides / CTA génériques / empty states système-like / superlatifs absolus), validation `xmllint` sur tous les SVG.
 
 ## Playbooks de stratégie
 
