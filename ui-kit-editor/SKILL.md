@@ -54,12 +54,14 @@ En plus de `data-asset` et `data-screen-label`, **plusieurs attributs sémantiqu
 | `data-hint="..."` | Hint sémantique métier libre (galerie BDD vs native, swipe behavior, etc.) | — |
 | `data-nav-target="<flow>/<page>[:<state>]"` | CTA / row / lien qui navigue vers un autre écran. `+ data-nav-back="true"` pour le retour. | format `<flow_id>/<page_id>` ou `<flow_id>/<page_id>:<state_id>` ou `back` |
 | `data-api-call="<METHOD>:/path[;...]"` | Élément / conteneur qui consomme un endpoint backend. Héritage parent + set union enfants. Skip sous `data-os-chrome`. | `METHOD` ∈ `GET\|POST\|PUT\|PATCH\|DELETE`, path identique à OpenAPI, path params en `{name}`, multiples séparés par `;` — query params exclus (vivent dans le state du cubit) |
+| `data-runtime="<source>"` (+ `-shape`, `-mock`, `-seed`, `-source`, `-empty`) | Conteneur dont le contenu est généré au runtime (user / server / algo / local) — à ne PAS hardcoder en dur dans la vue. Chaque enfant mocké pour le visuel porte `data-runtime-mock="true"`. | `source` ∈ `user-generated · server-driven · algorithm-generated · local-storage`. `shape` = nom du modèle métier (`table`, `post`, `todo`…) |
 
 **Règles d'or** :
 - Les SVG du chrome système (signal, wifi, battery, time) sont skipés par héritage parent `data-os-chrome="status-bar"` — ils **n'ont jamais** `data-asset`.
 - Les patterns UI dont le comportement échappe au visuel statique (carousel, dialog, bottom-sheet, etc.) **doivent** porter `data-uses="ui:..."`.
 - Les fonctions natives **doivent** porter `data-uses="native:..."` — l'agent codeur cherchera alors d'abord un widget partagé du projet, puis tombera sur l'API native si rien d'existant.
 - Tout CTA / row / lien qui **navigue entre écrans** doit porter `data-nav-target` — le skill `ui-kit-prototype` consomme cet attribut pour générer un prototype interactif, et les outils de code-gen génèrent les routes Flutter directement à partir de l'inventaire.
+- Tout conteneur affichant du **contenu généré au runtime** (canvas user, feed, galerie, map, liste de suggestions) doit porter `data-runtime="<source>"` + `data-runtime-shape="<type>"`. Chaque enfant montré dans la maquette pour le visuel doit porter `data-runtime-mock="true"` — sinon le code-gen hardcode les éléments fantômes du markup dans la vue (bug récurrent : 6 tables fixes dans le canvas de plan-de-table au lieu d'une liste vide + machinery d'ajout). Voir aussi `ui-kit-creator/SKILL.md` § `data-runtime`.
 
 ### Si le kit a une organisation obsolète
 
@@ -257,6 +259,7 @@ Si chrome-devtools indispo : kill du chrome existant + suppression `SingletonLoc
 - [ ] **`data-uses="native:..."` posé** sur toute fonction native sollicitée : image-picker, camera, file-picker, date-picker, map, share-sheet, biometric-auth, scanner, web-view, etc.
 - [ ] **`data-uses-context`** présent quand le paramétrage est non-trivial (multi-select, max items, options spécifiques)
 - [ ] **`data-hint` posé** sur les éléments dont la sémantique métier n'est pas évidente (galerie BDD vs native, swipe behavior, etc.)
+- [ ] **`data-runtime` + `data-runtime-mock` posés** sur tout conteneur affichant du contenu généré au runtime (canvas user-generated, feed server-driven, galerie, map, suggestions algo, liste offline-first). Sans ça, le code-gen hardcode les éléments fantômes du mockup dans la vue (les 6 tables du plan de table deviennent 6 widgets fixes au lieu d'une `List<Table>` vide + machinery d'ajout).
 - [ ] **Si nouveau widget** : ajouté à `components.css` ET documenté dans la section Composants de `UI Kit.html`
 - [ ] **Si nouvelle icône** : fetched depuis source officielle (Lucide canonical), ajoutée à `ds/assets/icons/<name>.svg`, ajoutée au sprite consolidé `ds/assets/icons/icons.svg`, **et inlinée en plein SVG avec `data-asset`** dans les HTML qui l'utilisent (UI Kit + Flows concernés)
 - [ ] **Pages flow sous `flows/<flow>/<page>.html`** — pas de fichier `Flow NN.html` à la racine
@@ -680,6 +683,30 @@ grep -lE 'suggestion|feedback' flows/*/settings.html 2>/dev/null \
 ```
 
 Page manquante → créer en utilisant uniquement les composants du DS. Si le PRD exclut une page (B2B interne, prototype court, jeu sans compte), documenter l'exclusion dans `GUIDELINES.md` section "Pages non livrées + raison".
+
+#### Check E — Cohérence `data-runtime` / `data-runtime-mock`
+
+Tout conteneur portant `data-runtime` doit avoir au moins un enfant `data-runtime-mock="true"` (sinon aucun visuel populé). Réciproquement, tout `data-runtime-mock` doit vivre sous un parent `data-runtime`.
+
+```bash
+echo "— conteneurs data-runtime sans enfant mock :"
+for f in $(grep -rl 'data-runtime=' flows/ --include="*.html"); do
+  python3 - "$f" <<'PY'
+import re, sys
+html = open(sys.argv[1]).read()
+for m in re.finditer(r'<(\w+)\b[^>]*\bdata-runtime="[^"]+"[^>]*>(.+?)</\1>', html, re.S):
+    if 'data-runtime-mock="true"' not in m.group(2):
+        print(f"  {sys.argv[1]} : conteneur <{m.group(1)}> sans enfant mock")
+PY
+done
+
+echo "— data-runtime-mock orphelins :"
+for f in $(grep -rl 'data-runtime-mock="true"' flows/ --include="*.html"); do
+  grep -q 'data-runtime=' "$f" || echo "  $f : aucun parent data-runtime dans le fichier"
+done
+```
+
+Tout hit → corriger : soit ajouter au moins un mock dans le conteneur, soit retirer le `data-runtime-mock` orphelin, soit poser le `data-runtime` parent manquant. Critique sur les apps avec canvas user-generated (plan de table, whiteboard, builder) ou feed server-driven — sans cette convention, le code-gen hardcode les éléments fantômes dans la vue.
 
 ### Audit de cohérence
 

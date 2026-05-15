@@ -123,18 +123,54 @@ Chaque icône est **inlinée en plein SVG** (rendu autonome en `file://`) avec u
 
 Les autres assets (brand / illustrations / images) utilisent `<img src="ds/assets/...">` ou `background-image: url(...)` — le chemin joue le même rôle de matching.
 
-**Conventions sémantiques** pour donner du contexte à l'agent codeur :
+**Conventions sémantiques** pour donner du contexte à l'agent codeur. Liste exhaustive — tout outil de code-gen consommant ces kits peut s'aligner dessus.
+
+### Identifiants & framing
 
 | Attribut | Quoi |
 |---|---|
-| `data-os-chrome="<type>"` | Élément rendu par l'OS (status-bar, dynamic-island, home-indicator, keyboard, gesture-bar, etc.). **Héritage parent** : tous les descendants sont skipés automatiquement. L'agent ne génère pas de widget pour ces éléments — la `SafeArea` du framework s'en charge. |
-| `data-uses="native:<feature>"` | Fonction native du device (`native:image-picker`, `native:camera`, `native:date-picker`, `native:biometric-auth`, `native:share-sheet`, etc.). L'agent priorise un widget partagé du projet, fallback sur l'API native si rien d'existant — sémantique pure, non prescriptive d'implémentation. |
-| `data-uses="ui:<pattern>"` | Pattern UI au comportement non-évident (`ui:carousel`, `ui:dialog`, `ui:bottom-sheet`, `ui:dot-indicator`, `ui:swipe-actions`, `ui:pull-to-refresh`, etc.). Sans cet attribut, l'agent recode en custom au lieu d'utiliser la primitive framework. |
+| `data-screen-label="NN <Page> <state>"` | ID stable d'une cell (état d'un écran) — dernier mot = `state_id` (default, loading, empty, error, edit, success…). Permet aux outils de générer des routes / widgets nommés sans deviner. |
+| `data-asset="ds/assets/icons/<name>.svg"` | Clé de matching entre un SVG inliné et son fichier source. `grep data-asset` → liste exacte des assets à importer dans le projet mobile. |
+| `data-os-chrome="<type>"` | Élément rendu par l'OS (status-bar, dynamic-island, home-indicator, keyboard, gesture-bar, notch, camera-cutout, device-frame). **Héritage parent** : tous descendants skipés. L'agent ne génère pas de widget — la `SafeArea` du framework s'en charge. |
+| `data-theme="dark"` | Posé sur `<html>` pour activer le mode sombre dans le mockup. Consommé par CSS via `[data-theme="dark"] { ... }`. |
+
+### Capacités & patterns
+
+| Attribut | Quoi |
+|---|---|
+| `data-uses="native:<feature>"` | Fonction native du device (`native:image-picker`, `native:camera`, `native:date-picker`, `native:biometric-auth`, `native:share-sheet`, `native:scanner`, `native:map`, `native:push-notification`, etc.). L'agent priorise un widget partagé du projet, fallback sur l'API native si rien d'existant — sémantique pure, non prescriptive d'implémentation. |
+| `data-uses="ui:<pattern>"` | Pattern UI au comportement non-évident (`ui:carousel`, `ui:dialog`, `ui:bottom-sheet`, `ui:dot-indicator`, `ui:swipe-actions`, `ui:pull-to-refresh`, `ui:tab-bar`, `ui:stepper`, `ui:skeleton-loader`, etc.). Sans cet attribut, l'agent recode en custom au lieu d'utiliser la primitive framework. |
 | `data-uses-context="..."` | Texte libre paramétrant `data-uses` (multi-select, max items, options spécifiques). |
-| `data-hint="..."` | Hint sémantique métier libre (galerie BDD vs native, swipe behavior, logique non visible). |
+| `data-hint="..."` | Hint sémantique métier libre (galerie BDD vs native, swipe behavior, logique non visible). Fallback quand aucun attribut typé ne convient. |
+
+### Navigation
+
+| Attribut | Quoi |
+|---|---|
 | `data-nav-target="<flow>/<page>[:<state>]"` | CTA / row / lien qui navigue vers un autre écran. `+ data-nav-back="true"` pour le retour. Consommé par le prototype interactif (clics navigables) ET par les outils de code-gen (génération directe des routes). |
 | `data-auto-advance="<flow>/<page>[:<state>]"` + `data-auto-advance-delay="<ms>"` | Posés sur la cell `[data-screen-label]`, signalent une navigation **temporisée** (splash → home, processing → result, toast auto-dismiss). Délai par défaut 3000 ms. Consommé par le prototype (Timer + barre de progress + bouton stop) ET par les outils de code-gen (Timer/LaunchedEffect/.task avec cancel-on-dispose). |
+
+### Backend & data
+
+| Attribut | Quoi |
+|---|---|
 | `data-api-call="<METHOD>:/path[;<METHOD>:/path...]"` | Élément / conteneur qui consomme un endpoint backend. Posé sur le conteneur le plus haut (typiquement `<main>` ou `.phone__screen`) ou sur un bouton qui POST/PUT/DELETE au tap. **Héritage parent + set union enfants**. Skip sous `data-os-chrome`. Format strict : `METHOD` ∈ `GET\|POST\|PUT\|PATCH\|DELETE`, path identique à l'OpenAPI, path params en `{name}`, multiples séparés par `;`, **pas de query string**. Permet au code-gen de générer paresseusement la couche data uniquement pour les endpoints réellement consommés. |
+| `data-runtime="<source>"` | Conteneur dont le contenu est **généré au runtime** (à NE PAS hardcoder dans la vue). `source` ∈ `user-generated` / `server-driven` / `algorithm-generated` / `local-storage`. Exemples : canvas d'un plan de table, feed social, galerie utilisateur, map de marqueurs, liste de suggestions, todos offline. |
+| `data-runtime-shape="<type>"` | Compagnon de `data-runtime` — nom du modèle métier (`table`, `post`, `todo`, `marker`, `recipe`). Permet au code-gen de générer la data class. |
+| `data-runtime-mock="true"` | Posé sur chaque enfant **mocké pour le visuel uniquement**. Le code-gen le saute (ne pas inclure dans le `build()`). Sans cette convention, les 6 tables fantômes du markup deviennent 6 widgets fixes au lieu d'une `List<Table>` vide + machinery d'ajout. |
+| `data-runtime-seed="<n>"` (optionnel) | Combien d'items la maquette montre — signal au code-gen que c'est représentatif, pas exhaustif. |
+| `data-runtime-source="<expr>"` (optionnel) | Source précise : `api:GET /events/{id}/tables` (couplé à `data-api-call`), `local:todos` (clé Hive/SQLite/SharedPreferences), `local-algorithm:recommend(user)`. |
+| `data-runtime-empty="<flow>/<page>[:<state>]"` (optionnel) | Cell empty-state correspondante — affichée quand `items.isEmpty`. |
+
+### Accessibilité
+
+| Attribut | Quoi |
+|---|---|
+| `data-a11y-label="<texte>"` | Texte lu par le screen reader (équivalent `accessibilityLabel` mobile / `aria-label` web). Obligatoire sur les boutons iconiques sans texte visible. |
+| `data-a11y-hint="<texte>"` | Indication supplémentaire (équivalent `accessibilityHint` iOS). |
+| `data-a11y-hidden="true"` | Élément ignoré par les screen readers (images décoratives, séparateurs visuels). |
+| `data-a11y-role="<role>"` | Rôle ARIA explicite (button, tab, header, alert, etc.) quand le markup natif ne le précise pas. |
+| `data-a11y-live="polite\|assertive"` | Région annoncée dynamiquement (toasts, notifications). `polite` après actions courantes, `assertive` pour erreurs critiques. |
 
 Ces conventions permettent à un script `grep` ou un agent LLM de comprendre la **sémantique** des éléments (pas seulement leur visuel), ce qui change radicalement la qualité du code généré.
 

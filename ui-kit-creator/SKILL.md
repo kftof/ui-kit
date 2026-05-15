@@ -1116,6 +1116,91 @@ Tout élément (ou conteneur) qui consomme de la data depuis un endpoint backend
 - Code-gen Flutter / Compose / SwiftUI génère un cubit / view-model data-driven qui consomme les bons repos (`await _recipeRepo.getById(id)`) au lieu d'`emit(initial)` placeholder
 - Audit trail : retirer un `data-api-call` d'une maquette = retirer l'endpoint du data layer à la prochaine régen — avec warning `BREAKING_CHANGE` si du code existant l'utilisait
 
+### `data-runtime` — contenu généré au runtime (à ne PAS coder en dur)
+
+Beaucoup de maquettes montrent un état populé pour donner à voir le rendu réel : un canvas avec 6 tables sur un plan de table, un feed avec 5 posts, une galerie avec 12 photos, une map avec 20 marqueurs. **Ces éléments sont des leurres visuels** — le code-gen doit générer un conteneur vide + le système d'ajout / fetch, pas hardcoder les 6 `<div class="table">` du markup dans le `build()`.
+
+Sans convention dédiée, l'agent codeur ne peut pas distinguer "élément structurel à coder en dur" (header, FAB, empty state) de "élément mocké en placeholder" (les tables dans le canvas). Résultat : il code 6 widgets `Table` fixes dans la vue, le user voit son plan de table avec 6 tables fantômes, le bouton + ne sert à rien.
+
+**Convention** — posée sur le **conteneur** dynamique + sur chaque **enfant mocké** :
+
+```html
+<section class="canvas"
+         data-runtime="user-generated"
+         data-runtime-shape="table"
+         data-runtime-seed="6"
+         data-runtime-empty="plan/canvas:empty">
+  <!-- Items mockés pour montrer le rendu populé. À ne pas hardcoder. -->
+  <div class="table table--round" data-runtime-mock="true"
+       style="left:120px;top:80px">T1 · 4 pl.</div>
+  <div class="table table--square" data-runtime-mock="true"
+       style="left:220px;top:140px">T2 · 6 pl.</div>
+  <!-- … -->
+</section>
+```
+
+**Attributs** :
+
+| Attribut | Posé sur | Contenu / valeurs |
+|---|---|---|
+| `data-runtime="<source>"` | conteneur dynamique | Origine de la donnée : `user-generated` (créé par l'utilisateur) / `server-driven` (fetched depuis API) / `algorithm-generated` (calculé) / `local-storage` (persisté localement sans backend) |
+| `data-runtime-shape="<type>"` | conteneur | Nom du modèle métier (`table`, `post`, `todo`, `marker`, `recipe`, `photo`) — permet au code-gen de générer la data class / model |
+| `data-runtime-mock="true"` | chaque enfant mocké | Marque "ne pas inclure ce nœud dans le `build()` — il est là pour le visuel uniquement" |
+| `data-runtime-seed="<n>"` (optionnel) | conteneur | Nombre d'items que la maquette montre — signal au code-gen : c'est représentatif, pas exhaustif |
+| `data-runtime-source="<expr>"` (optionnel) | conteneur | Si `server-driven` : pointe vers le `data-api-call` correspondant (ex: `"api:GET /events/{id}/tables"`). Si `local-storage` : nom de la clé/table locale |
+| `data-runtime-empty="<flow>/<page>[:<state>]"` (optionnel) | conteneur | Cell empty-state correspondante — quand `items.isEmpty`, le code-gen affiche cette vue |
+
+**Cas typiques** :
+
+```html
+<!-- 1. Canvas user-generated (plan de table, whiteboard, builder no-code) -->
+<section class="canvas"
+         data-runtime="user-generated"
+         data-runtime-shape="table"
+         data-runtime-seed="6">
+  <div class="table" data-runtime-mock="true">…</div>
+</section>
+
+<!-- 2. Feed server-driven -->
+<main data-api-call="GET:/feed"
+      data-runtime="server-driven"
+      data-runtime-shape="post"
+      data-runtime-source="api:GET /feed"
+      data-runtime-empty="feed/home:empty">
+  <article class="post-card" data-runtime-mock="true">…</article>
+  <article class="post-card" data-runtime-mock="true">…</article>
+</main>
+
+<!-- 3. Liste de suggestions algorithmiques -->
+<section class="suggestions"
+         data-runtime="algorithm-generated"
+         data-runtime-shape="suggestion"
+         data-runtime-source="local-algorithm:recommend(user)">
+  <div class="suggestion-card" data-runtime-mock="true">…</div>
+</section>
+
+<!-- 4. Persistance locale (notes, todos offline-first) -->
+<ul class="todo-list"
+    data-runtime="local-storage"
+    data-runtime-shape="todo"
+    data-runtime-source="local:todos"
+    data-runtime-empty="todos/list:empty">
+  <li class="todo-row" data-runtime-mock="true">…</li>
+</ul>
+```
+
+**Comportement code-gen attendu** :
+1. Voit `data-runtime` sur un conteneur → génère un `List<Shape> items` state + un widget qui boucle (`ListView.builder` / `Column` dynamique / `ForEach`) au lieu de transcrire les enfants
+2. Skip tous les enfants portant `data-runtime-mock="true"` (ne pas les mettre dans le `build()`)
+3. Voit `data-runtime-shape="X"` → génère la data class `class X { ... }` au scaffolding (champs déduits du markup mocké si présents en `data-*`, sinon stub à compléter)
+4. Voit `data-runtime="server-driven"` + `data-api-call` → branche le repo / cubit / view-model sur l'endpoint
+5. Voit `data-runtime-empty="..."` → quand `items.isEmpty`, le widget affiche la cell empty-state pointée
+
+**Différence vs `data-hint="mock"` (ancien bricolage)** :
+- `data-hint` est libre / non typé → le code-gen ne sait pas faire
+- `data-runtime-mock="true"` est strict → grep mécanique fiable
+- `data-runtime` ajoute la dimension manquante : **TYPE** de génération (user / server / algo / local), pas juste "c'est dynamique"
+
 ### Récapitulatif — quel attribut quand ?
 
 | Tu veux exprimer… | Attribut | Lecture |
@@ -1129,6 +1214,10 @@ Tout élément (ou conteneur) qui consomme de la data depuis un endpoint backend
 | "État visuel de la cell" | `data-screen-label` | regex tools |
 | "Cet élément navigue vers un autre écran" | `data-nav-target="<flow>/<page>[:<state>]"` (+ optionnel `data-nav-back`) | regex tools + prototype runtime + code-gen |
 | "Cet élément/conteneur consomme cet endpoint backend" | `data-api-call="<METHOD>:/path[;...]"` (héritage parent + set union enfant) | regex tools + code-gen (couche data paresseuse) |
+| "Ce conteneur héberge du contenu généré au runtime (user / server / algo / local)" | `data-runtime="<source>"` + `data-runtime-shape="<type>"` (+ `data-runtime-seed`, `-source`, `-empty`) | regex tools + code-gen |
+| "Cet élément est un mock visuel — ne pas hardcoder dans la vue" | `data-runtime-mock="true"` | regex tools |
+| "Texte lu par le screen reader / hint a11y / élément ignoré / rôle ARIA / annonces live" | `data-a11y-label` / `-hint` / `-hidden` / `-role` / `-live` | regex tools + code-gen |
+| "Toggle dark mode" | `data-theme="dark"` sur `<html>` | runtime CSS |
 
 ## ✍️ `UI Kit.html` — page unique tout-en-un
 
@@ -1600,7 +1689,7 @@ L'ordre est strict — le DS doit exister **avant** que le premier Flow soit éc
     - `xmllint --noout` sur **tous** les SVG de `ds/assets/` → 0 erreur (pour confirmer que rien n'a été ajouté qui casserait le rendu via `<img>`)
     - **Audit wording** : lancer les 4 grep de la section "✏️ Wording / Microcopy" (mots vides, CTA génériques, empty states système-like, superlatifs absolus) → 0 hit non justifié par commentaire HTML inline
     - **Anti-monoculture palette** : `grep -m1 -E "^\s*--primary:" ds/tokens.css` puis comparer aux primary des kits scannés à l'étape 2 → si match d'une teinte déjà shippée et pas justifié dans `GUIDELINES.md`, alerter le user avant livraison
-    - **Audit intégrité structurelle** : exécuter intégralement la section "🔎 Audit auto post-création — intégrité structurelle" ci-dessous (balises HTML, composants partagés, UI Kit.html sync, pages obligatoires)
+    - **Audit intégrité structurelle** : exécuter intégralement la section "🔎 Audit auto post-création — intégrité structurelle" ci-dessous (Checks A-E : balises HTML, composants partagés, UI Kit.html sync, pages obligatoires, cohérence `data-runtime` / `data-runtime-mock`)
     - **screenshot viewport-by-viewport** de chaque page via chrome-devtools (cf. § Validation visuelle), relire chaque section, vérifier dark mode si supporté
 
 ## 🔎 Audit auto post-création — intégrité structurelle
@@ -1699,6 +1788,32 @@ grep -lE 'suggestion|feedback' flows/*/settings.html 2>/dev/null \
 ```
 
 Toute page manquante doit être créée AVANT livraison, en utilisant uniquement les composants du DS. Si le PRD exclut explicitement une de ces pages (ex: produit B2B interne, prototype court présenté à un client, jeu sans compte user), documenter l'exclusion dans `GUIDELINES.md` section "Pages non livrées + raison" — ne JAMAIS livrer un kit grand-public sans Settings + Legal + Suggestions sans justification écrite.
+
+### Check E — Cohérence `data-runtime` / `data-runtime-mock`
+
+Tout conteneur portant `data-runtime` doit avoir au moins un enfant `data-runtime-mock="true"` (sinon il n'y a aucun visuel populé à montrer). Réciproquement, tout `data-runtime-mock` doit vivre sous un parent `data-runtime` (sinon le marqueur n'a pas de contexte).
+
+```bash
+# Conteneurs data-runtime sans enfant mock visible
+echo "— conteneurs data-runtime sans enfant mock :"
+for f in $(grep -rl 'data-runtime=' flows/ --include="*.html"); do
+  python3 - "$f" <<'PY'
+import re, sys
+html = open(sys.argv[1]).read()
+for m in re.finditer(r'<(\w+)\b[^>]*\bdata-runtime="[^"]+"[^>]*>(.+?)</\1>', html, re.S):
+    if 'data-runtime-mock="true"' not in m.group(2):
+        print(f"  {sys.argv[1]} : conteneur <{m.group(1)}> sans enfant mock")
+PY
+done
+
+# data-runtime-mock orphelins
+echo "— data-runtime-mock orphelins :"
+for f in $(grep -rl 'data-runtime-mock="true"' flows/ --include="*.html"); do
+  grep -q 'data-runtime=' "$f" || echo "  $f : aucun parent data-runtime dans le fichier"
+done
+```
+
+Tout hit → corriger : soit ajouter au moins un mock dans le conteneur, soit retirer le `data-runtime-mock` orphelin, soit poser le `data-runtime` parent manquant.
 
 16. **Livrer le package complet** avec un récap des screenshots vérifiés
 
