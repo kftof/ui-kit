@@ -528,6 +528,71 @@ flutter:
 
 Le dev copie le contenu de `ds/assets/fonts/` directement dans `assets/fonts/` de son projet Flutter, ajoute le snippet ci-dessus à `pubspec.yaml`, et utilise via `TextStyle(fontFamily: 'Fraunces', fontVariations: [FontVariation('wght', 600)])`.
 
+## ✏️ Wording / Microcopy — règles obligatoires
+
+Un kit HTML qui ship des labels en jargon tech, des mots inventés ou du franglais creux **n'est pas livrable** — peu importe la qualité du design. La microcopy se traite avec autant de rigueur que les tokens couleur.
+
+### Règles fondamentales
+
+1. **Langage utilisateur, pas jargon produit/dev.** Le label décrit ce que la personne fait, pas comment c'est implémenté.
+   - ❌ "Configurer le dashboard", "Synchroniser le backend", "Insights premium", "Workspace", "Onboarding"
+   - ✅ "Choisir ce qui s'affiche", "Mettre à jour", "Voir tes stats", "Mon espace", "Bienvenue"
+   - Exception unique : app de niche dev / power-user où le jargon EST la promesse (CLI, API tools, crypto).
+
+2. **Pas de mots vides, inventés, franglais cosmétique.**
+   - ❌ "Setupez", "Boostez", "Smart" (sans rien derrière), "Premium" (sans bénéfice associé), "Magic", "Optimize" seul
+   - ❌ Verbes anglais conjugués en français : "scroller", "matcher", "tweaker" (sauf si la cible est explicitement dev FR)
+   - ✅ Verbe d'action concret + objet : "Ajouter une recette", "Voir mes plats", "Inviter un ami"
+
+3. **CTA = verbe + bénéfice ou objet, jamais générique.**
+   - ❌ "OK", "Submit", "Continuer", "Valider", "Confirmer", "Soumettre"
+   - ✅ "Créer mon profil", "Voir mes résultats", "Lancer le plan", "Garder ces réponses"
+   - Exception : dialogs binaires standards (`Annuler` / `Supprimer` sur un confirm destructive).
+
+4. **Empty states : ton humain, pas système.**
+   - ❌ "No data available", "Aucune donnée", "Rien à afficher"
+   - ✅ "Pas encore de recette ici — ajoute la première" + CTA cohérent
+   - Empty state = opportunité de relance, pas un message d'erreur déguisé.
+
+5. **Valeurs > labels.** Quand un label accompagne une valeur (prix, durée, score), la valeur domine visuellement et textuellement. Le label peut souvent disparaître (le contexte suffit).
+   - ❌ "Prix : 9,99 €/mois" (label et valeur même taille)
+   - ✅ **9,99 €** / mois (valeur dominante, unité muet)
+   - Voir aussi playbook 03 §AP-6.
+
+6. **Échelles de choix sans superlatifs absolus.** Bannir "Plus que tout", "À 200%", "Énorme", "Incroyable" dans les options Likert / quiz d'onboarding. Préférer 1–5 numéroté ou wording sobre mesurable. Voir playbook 01 §HON-3.
+
+7. **Phrases courtes en mobile.** Un titre d'écran ≤ 35 caractères, un sous-titre ≤ 80, un CTA ≤ 22. Si ça déborde, c'est que le wording est mal pensé — pas qu'il faut tronquer.
+
+8. **Test "grand-mère" obligatoire.** Pour chaque label/titre/CTA, se demander : "ma grand-mère (ou un user 60+ non-tech) comprendrait sans aide ?". Si non → réécrire.
+
+### Audit grep automatique avant livraison
+
+Liste non exhaustive de mots/patterns à grep dans tous les `flows/**/*.html` — chaque hit demande une justification ou une réécriture :
+
+```bash
+# Mots vides / franglais cosmétique / jargon produit
+grep -rEni "dashboard|workspace|onboarding|setupez|boostez|smart |premium |insights|tweaker|matcher|scroller" flows/ --include="*.html"
+
+# CTA génériques
+grep -rEni '>(\s*)(OK|Submit|Continuer|Valider|Confirmer|Soumettre|Suivant)(\s*)<' flows/ --include="*.html"
+
+# Empty states système-like
+grep -rEni "no data|aucune donnée|rien à afficher|empty list" flows/ --include="*.html"
+
+# Superlatifs absolus dans choix Likert
+grep -rEni "plus que tout|à 200|énorme|incroyable|absolument" flows/ --include="*.html"
+```
+
+Tout hit = soit justifié explicitement (commentaire HTML `<!-- wording justifié : ... -->`), soit réécrit avant livraison.
+
+### Intégration dans le workflow
+
+- **Étape 8 (création UI Kit.html)** : la section "Composants" du UI Kit montre des CTA et empty states avec du wording **représentatif** de la vraie app (pas "Button" / "Lorem ipsum").
+- **Étape 10 (premier flow)** : tous les labels visibles passent les 8 règles ci-dessus AVANT le screenshot de validation.
+- **Étape 15 (auto-audit final)** : lancer les 4 grep ci-dessus, zéro hit non justifié.
+
+---
+
 ## ✏️ Texte dans les SVG assets — règles obligatoires
 
 Tout `<text>` dans un SVG asset (`ds/assets/brand/*.svg`, `ds/assets/illustrations/*.svg`) doit respecter ces règles pour être correctement rendu côté code mobile (Flutter via `flutter_svg`, iOS via `SVGKit`, Android via `androidsvg`). Le browser tolère beaucoup, **les libs SVG mobiles non**.
@@ -1420,6 +1485,21 @@ L'ordre est strict — le DS doit exister **avant** que le premier Flow soit éc
 
 1. **Poser les 10 questions** (ou valider les infos fournies)
 2. **Proposer 3 directions visuelles** en 2 phrases chacune (ton, palette, typo, **style nommé** parmi le catalogue de `playbooks/03-conversion-psychology.md` §5 — Liquid Glass / Glassmorphism / Claymorphism / Skeuomorphism / Brutalism / Swiss Minimalism / Editorial / Cyberpunk / Hand-drawn Sketch / Material Expressive / Dark Mode First / Y2K / Solarized / Bento Grid) — faire choisir. Le style nommé sert d'ancrage commun entre toi, le user, et l'agent codeur. UN seul style dominant retenu.
+
+   **a. Scan anti-monoculture (AVANT de proposer)** — lister les `--primary` des derniers kits HTML du user pour ne pas re-shipper la même teinte :
+   ```bash
+   for f in $(find ~/Dev -maxdepth 4 -name "tokens.css" -not -path "*/node_modules/*" 2>/dev/null); do
+     printf "%-60s " "$f"; grep -m1 -E "^\s*--primary:" "$f"
+   done
+   ```
+   Mémoriser les teintes shippées. **Interdit de re-proposer la même famille chromatique** sauf si le PRD l'impose (continuité de marque, suite produit).
+
+   **b. Règles de diversité des 3 directions** :
+   - Tonalement distinctes entre elles : au moins 2 familles chromatiques différentes (ex. froid / chaud / désaturé) — pas 3 nuances de la même teinte.
+   - Aucune des 3 ne reprend une primary déjà shippée dans les kits scannés au point a (sauf justification PRD).
+   - **Bannir comme défaut paresseux la combo "terracotta + warm neutral + serif vivante"** — c'est devenu le nouvel AI slope post-2024. À ne proposer QUE si la niche le justifie explicitement (lecture, food, slow living, journaling) ET qu'aucun kit récent ne l'a déjà.
+   - Chaque direction porte une ligne **"Pourquoi pour CE produit"** qui pointe une contrainte concrète du PRD (cible, niche, émotion visée, différenciation concurrentielle) — pas un argument générique type "moderne et chaleureux".
+   - Donner le hex de `--primary` dès la proposition (pas juste un nom) — permet de voir l'écart entre les 3.
 2.5. **Consulter les playbooks pertinents** selon le scope déclaré aux étapes 1-2 (onboarding ? paywall ? core loop ? écran de fierté sharable ?). Lire les `playbooks/0X-*.md` pertinents pour internaliser les règles **avant** d'écrire les écrans concernés.
 
    **Résolution du path des playbooks** (ordre de priorité) :
@@ -1518,6 +1598,8 @@ L'ordre est strict — le DS doit exister **avant** que le premier Flow soit éc
     - **Pour chaque CTA / row / lien qui navigue** entre écrans : un `data-nav-target="<flow>/<page>[:<state>]"` est posé. Pour les boutons retour : `data-nav-target="back" data-nav-back="true"`. Vérifier que toutes les cibles existent (grep `data-nav-target` puis valider chaque target contre l'inventaire `flows/<flow>/<page>.html` × `data-screen-label`).
     - **Pour chaque page qui consomme du backend** (liste, détail, feed, formulaire avec submit) : un `data-api-call="<METHOD>:/path"` est posé sur le conteneur le plus haut (typiquement `<main>` ou `.phone__screen`). Boutons POST/PUT/DELETE : `data-api-call` sur le bouton. Format strict `<GET|POST|PUT|PATCH|DELETE>:/path`, path params en `{name}`, multiples séparés par `;`. Vérifier qu'aucune query string n'est dans l'attribut (`?param=...` interdit). Une page entièrement statique (splash, onboarding, marketing pré-auth) reste sans `data-api-call`.
     - `xmllint --noout` sur **tous** les SVG de `ds/assets/` → 0 erreur (pour confirmer que rien n'a été ajouté qui casserait le rendu via `<img>`)
+    - **Audit wording** : lancer les 4 grep de la section "✏️ Wording / Microcopy" (mots vides, CTA génériques, empty states système-like, superlatifs absolus) → 0 hit non justifié par commentaire HTML inline
+    - **Anti-monoculture palette** : `grep -m1 -E "^\s*--primary:" ds/tokens.css` puis comparer aux primary des kits scannés à l'étape 2 → si match d'une teinte déjà shippée et pas justifié dans `GUIDELINES.md`, alerter le user avant livraison
     - **screenshot viewport-by-viewport** de chaque page via chrome-devtools (cf. § Validation visuelle), relire chaque section, vérifier dark mode si supporté
 16. **Livrer le package complet** avec un récap des screenshots vérifiés
 
