@@ -1600,7 +1600,106 @@ L'ordre est strict — le DS doit exister **avant** que le premier Flow soit éc
     - `xmllint --noout` sur **tous** les SVG de `ds/assets/` → 0 erreur (pour confirmer que rien n'a été ajouté qui casserait le rendu via `<img>`)
     - **Audit wording** : lancer les 4 grep de la section "✏️ Wording / Microcopy" (mots vides, CTA génériques, empty states système-like, superlatifs absolus) → 0 hit non justifié par commentaire HTML inline
     - **Anti-monoculture palette** : `grep -m1 -E "^\s*--primary:" ds/tokens.css` puis comparer aux primary des kits scannés à l'étape 2 → si match d'une teinte déjà shippée et pas justifié dans `GUIDELINES.md`, alerter le user avant livraison
+    - **Audit intégrité structurelle** : exécuter intégralement la section "🔎 Audit auto post-création — intégrité structurelle" ci-dessous (balises HTML, composants partagés, UI Kit.html sync, pages obligatoires)
     - **screenshot viewport-by-viewport** de chaque page via chrome-devtools (cf. § Validation visuelle), relire chaque section, vérifier dark mode si supporté
+
+## 🔎 Audit auto post-création — intégrité structurelle
+
+À exécuter AVANT toute livraison ou message "c'est fait". Indépendant des audits stratégiques (`ui-kit-audit`) — ce sont des checks d'intégrité technique du kit. Tout fail ici = ne pas livrer, corriger d'abord.
+
+### Check A — HTML bien formé (zéro balise manquante / orpheline)
+
+```bash
+# tidy si dispo (recommandé), sinon xmllint --html
+for f in $(find . -name "*.html" -not -path "*/node_modules/*"); do
+  if command -v tidy >/dev/null 2>&1; then
+    OUT=$(tidy -errors -quiet "$f" 2>&1 | grep -E "Error:|missing|not properly closed|is not allowed in" )
+  else
+    OUT=$(xmllint --html --noout "$f" 2>&1 | grep -v "^$")
+  fi
+  [ -n "$OUT" ] && echo "❌ $f" && echo "$OUT" | head -5
+done
+```
+
+Pourquoi ça compte : le browser tolère silencieusement (`<div>` non fermée, `<li>` orpheline, attribut sans guillemets), mais (1) les outils de code-gen (Mirror Code, `ui-kit-to-code`) parsent en strict et casseront, (2) le DOM réel diffère du markup écrit, (3) une balise mal fermée fait remonter des styles à un parent inattendu — bug invisible jusqu'au screenshot du mauvais écran.
+
+Tout hit doit être fixé avant livraison.
+
+### Check B — Composants partagés (zéro widget redéfini en local)
+
+```bash
+# 1. Aucun <style> de widget dans les flows (seuls canvas/frame autorisés)
+echo "— <style> suspects dans flows :"
+grep -rn '<style>' flows/ --include="*.html" | grep -vE 'canvas|frame|phone__|cell-'
+
+# 2. Inline styles répétés ≥ 2× sur du widget visuel (pas du layout one-shot)
+echo "— inline styles répétés :"
+grep -rohE 'style="[^"]{30,}"' flows/ --include="*.html" | sort | uniq -c | sort -rn | awk '$1 >= 2'
+
+# 3. Pattern de classe ad-hoc local (sans pendant dans components.css)
+echo "— classes locales sans pendant DS :"
+LOCAL=$(grep -rohE 'class="[^"]+"' flows/ --include="*.html" | grep -oE '\b[a-z][a-z0-9_-]*\b' | sort -u)
+for c in $LOCAL; do
+  grep -q "\.$c\b" ds/components.css ds/tokens.css 2>/dev/null || echo "  $c"
+done | grep -vE '^\s*(canvas|frame|phone|cell|grid|row|col|main|body|html|svg|path|g|defs|use)\b'
+```
+
+Tout hit non trivial → factoriser dans `ds/components.css` AVANT livraison. Les exceptions légitimes (utility one-shot pour positionnement d'une cell de doc) doivent porter un commentaire HTML inline `<!-- one-shot : <raison> -->`.
+
+### Check C — UI Kit.html à jour avec les composants utilisés
+
+Chaque classe widget consommée dans un flow doit avoir une cellule de doc dans `UI Kit.html`. Sinon le dev n'a pas de référence pour le widget à coder — le kit ment.
+
+```bash
+# Familles de widgets à scanner (extensible selon le DS du projet)
+WIDGET_PREFIXES='btn|card|chip|tag|badge|input|select|switch|toggle|task-row|list-row|tile|dialog|sheet|banner|toast|empty-state|tab-bar|app-bar|stepper|fab|avatar|skeleton|alert|modal|drawer|popover|tooltip'
+
+USED=$(grep -rohE 'class="[^"]*"' flows/ --include="*.html" \
+  | grep -oE "\b($WIDGET_PREFIXES)[a-z0-9_-]*\b" \
+  | sort -u)
+
+echo "— widgets utilisés en flows mais absents de UI Kit.html :"
+for c in $USED; do
+  grep -q "\.$c\b\|class=\"[^\"]*\b$c\b" "UI Kit.html" 2>/dev/null || echo "  MANQUE : .$c"
+done
+```
+
+Tout `MANQUE` → ajouter la cellule correspondante dans la section Composants de `UI Kit.html` AVANT livraison.
+
+### Check D — Pages obligatoires présentes
+
+Tout kit mobile/web destiné à un produit réel doit livrer (au minimum) :
+
+| Page obligatoire | Path canonique | Contenu attendu |
+|---|---|---|
+| **Settings / Réglages** | `flows/<NN>-settings/settings.html` | Sections Compte / Abonnement / Notifs / Apparence / Confidentialité / Support / About (cf. playbook 02 §RM-1) |
+| **About / À propos** | `flows/<NN>-settings/about.html` OU cell dans `settings.html` | Version app, mentions, équipe, liens (site, support) |
+| **Legal — CGU + Privacy** | `flows/<NN>-legal/cgu.html` + `privacy.html` | Texte placeholder réel structuré (titres, paragraphes) — pas une page vide |
+| **Suggestions / Feedback** | Cell `suggestions` dans `settings.html` OU `flows/<NN>-settings/suggestions.html` | Form de demande d'amélioration, **accessible depuis Settings** via `data-nav-target` |
+
+```bash
+echo "— pages obligatoires manquantes :"
+declare -A REQ=(
+  [settings]="settings|réglages|reglages"
+  [about]="about|à propos|a-propos"
+  [legal]="cgu|privacy|confidentialité|mentions|legal"
+  [suggestions]="suggestion|feedback|amélioration|ameliorer"
+)
+for key in "${!REQ[@]}"; do
+  pattern="${REQ[$key]}"
+  if ! find flows -type f -name "*.html" 2>/dev/null | xargs grep -liE "$pattern" >/dev/null 2>&1; then
+    echo "  MANQUE : $key"
+  fi
+done
+
+# Suggestions doit être linké depuis Settings
+echo "— suggestions accessible depuis settings ? :"
+grep -lE 'suggestion|feedback' flows/*/settings.html 2>/dev/null \
+  || echo "  ATTENTION : aucun lien suggestions trouvé dans settings.html"
+```
+
+Toute page manquante doit être créée AVANT livraison, en utilisant uniquement les composants du DS. Si le PRD exclut explicitement une de ces pages (ex: produit B2B interne, prototype court présenté à un client, jeu sans compte user), documenter l'exclusion dans `GUIDELINES.md` section "Pages non livrées + raison" — ne JAMAIS livrer un kit grand-public sans Settings + Legal + Suggestions sans justification écrite.
+
 16. **Livrer le package complet** avec un récap des screenshots vérifiés
 
 ## 🔍 Validation visuelle — protocole obligatoire

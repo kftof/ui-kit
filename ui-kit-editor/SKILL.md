@@ -589,6 +589,98 @@ Cas typique : un Flow contient `<style>.task-row { … }</style>` au lieu de con
 4. Valider avec l'utilisateur
 5. Exécuter le split
 
+### 🔎 Audit auto post-édition — intégrité structurelle (obligatoire)
+
+À exécuter AVANT toute livraison ou message "c'est fait" après une édition. Indépendant des audits stratégiques (`ui-kit-audit`) — ce sont des checks d'intégrité technique. Tout fail = ne pas livrer, corriger d'abord.
+
+#### Check A — HTML bien formé (zéro balise manquante / orpheline)
+
+```bash
+for f in $(find . -name "*.html" -not -path "*/node_modules/*"); do
+  if command -v tidy >/dev/null 2>&1; then
+    OUT=$(tidy -errors -quiet "$f" 2>&1 | grep -E "Error:|missing|not properly closed|is not allowed in")
+  else
+    OUT=$(xmllint --html --noout "$f" 2>&1 | grep -v "^$")
+  fi
+  [ -n "$OUT" ] && echo "❌ $f" && echo "$OUT" | head -5
+done
+```
+
+Pourquoi : le browser tolère silencieusement, mais les outils de code-gen (Mirror Code, `ui-kit-to-code`) parsent en strict et casseront — et le DOM réel diffère du markup écrit (une `<div>` non fermée fait remonter des styles à un parent inattendu). Tout hit doit être fixé.
+
+#### Check B — Composants partagés (zéro widget redéfini en local)
+
+```bash
+# <style> de widget dans flows (seuls canvas/frame autorisés)
+echo "— <style> suspects :"
+grep -rn '<style>' flows/ --include="*.html" | grep -vE 'canvas|frame|phone__|cell-'
+
+# Inline styles répétés ≥ 2×
+echo "— inline styles répétés :"
+grep -rohE 'style="[^"]{30,}"' flows/ --include="*.html" | sort | uniq -c | sort -rn | awk '$1 >= 2'
+
+# Classes ad-hoc sans pendant dans le DS
+echo "— classes locales sans pendant DS :"
+LOCAL=$(grep -rohE 'class="[^"]+"' flows/ --include="*.html" | grep -oE '\b[a-z][a-z0-9_-]*\b' | sort -u)
+for c in $LOCAL; do
+  grep -q "\.$c\b" ds/components.css ds/tokens.css 2>/dev/null || echo "  $c"
+done | grep -vE '^\s*(canvas|frame|phone|cell|grid|row|col|main|body|html|svg|path|g|defs|use)\b'
+```
+
+Tout hit non trivial → factoriser dans `ds/components.css`. Exception légitime → commentaire HTML inline `<!-- one-shot : <raison> -->`.
+
+#### Check C — UI Kit.html à jour avec les composants utilisés
+
+Chaque classe widget consommée dans un flow doit avoir une cellule de doc dans `UI Kit.html`. Sinon le kit ment et le dev code en aveugle.
+
+```bash
+WIDGET_PREFIXES='btn|card|chip|tag|badge|input|select|switch|toggle|task-row|list-row|tile|dialog|sheet|banner|toast|empty-state|tab-bar|app-bar|stepper|fab|avatar|skeleton|alert|modal|drawer|popover|tooltip'
+
+USED=$(grep -rohE 'class="[^"]*"' flows/ --include="*.html" \
+  | grep -oE "\b($WIDGET_PREFIXES)[a-z0-9_-]*\b" | sort -u)
+
+echo "— widgets utilisés en flows mais absents de UI Kit.html :"
+for c in $USED; do
+  grep -q "\.$c\b\|class=\"[^\"]*\b$c\b" "UI Kit.html" 2>/dev/null || echo "  MANQUE : .$c"
+done
+```
+
+Tout `MANQUE` → ajouter la cellule correspondante dans la section Composants de `UI Kit.html`. **Ce check est critique après toute édition** qui ajoute un widget, un modifier, ou une variante au DS.
+
+#### Check D — Pages obligatoires présentes
+
+Tout kit mobile/web destiné à un produit grand-public doit livrer :
+
+| Page obligatoire | Path canonique | Contenu attendu |
+|---|---|---|
+| **Settings / Réglages** | `flows/<NN>-settings/settings.html` | Compte / Abonnement / Notifs / Apparence / Confidentialité / Support / About (cf. playbook 02 §RM-1) |
+| **About / À propos** | `flows/<NN>-settings/about.html` OU cell dans settings | Version app, mentions, équipe, liens |
+| **Legal — CGU + Privacy** | `flows/<NN>-legal/cgu.html` + `privacy.html` | Texte placeholder structuré (titres, paragraphes) — pas vide |
+| **Suggestions / Feedback** | Cell dans `settings.html` OU `flows/<NN>-settings/suggestions.html` | Form de demande d'amélioration, **accessible depuis Settings** |
+
+```bash
+echo "— pages obligatoires manquantes :"
+declare -A REQ=(
+  [settings]="settings|réglages|reglages"
+  [about]="about|à propos|a-propos"
+  [legal]="cgu|privacy|confidentialité|mentions|legal"
+  [suggestions]="suggestion|feedback|amélioration|ameliorer"
+)
+for key in "${!REQ[@]}"; do
+  pattern="${REQ[$key]}"
+  if ! find flows -type f -name "*.html" 2>/dev/null | xargs grep -liE "$pattern" >/dev/null 2>&1; then
+    echo "  MANQUE : $key"
+  fi
+done
+
+# Suggestions doit être linké depuis Settings
+echo "— suggestions accessible depuis settings ? :"
+grep -lE 'suggestion|feedback' flows/*/settings.html 2>/dev/null \
+  || echo "  ATTENTION : aucun lien suggestions trouvé dans settings.html"
+```
+
+Page manquante → créer en utilisant uniquement les composants du DS. Si le PRD exclut une page (B2B interne, prototype court, jeu sans compte), documenter l'exclusion dans `GUIDELINES.md` section "Pages non livrées + raison".
+
 ### Audit de cohérence
 
 Checklist agnostique du produit :
