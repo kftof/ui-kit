@@ -12,6 +12,7 @@
 | [`ui-kit-brand-explorer`](ui-kit-brand-explorer/SKILL.md) | Explorer plusieurs directions logo (6 directions × 4 variantes), choisir, générer les 7 fichiers brand cohérents — neutre côté esthétique (suit le DS et le ton du brief, dark-first / sobre / chaleureux / technique selon le projet) |
 | [`ui-kit-audit`](ui-kit-audit/SKILL.md) | Auditer un kit contre les 3 playbooks de stratégie + critères WCAG mobile + intégrité structurelle (ST-*) + microcopy (MC-*) = **93 critères au total** et produire un rapport `Audit.md` avec score, critères pass/fail/n-a + justification, recommandations prioritaires ordonnées. Diagnostic uniquement — pour corriger, enchaîner avec `ui-kit-editor`. |
 | [`ui-kit-aso-metadata`](ui-kit-aso-metadata/SKILL.md) | **NEW** — Générer les textes de fiche App Store / Play Store haute conversion (App Name, Subtitle, Promo Text, Description, Keywords, What's New) avec validation stricte des limites Apple/Google, competitive analysis 3-5 concurrents, storyboard captures et Custom Product Pages. Livrable `ASO.md` (humain) + `ASO.json` (machine-readable, consommable CI/CD). Complémentaire de `aso-appstore-screenshots` qui gère les visuels. |
+| [`ui-kit-prd-sync`](ui-kit-prd-sync/SKILL.md) | **NEW** — Enrichir un PRD existant avec le détail page-par-page des écrans du kit (but, états, interactions, endpoints, runtime, a11y) — sans piétiner les sections rédigées à la main. Indispensable avant de lancer Mirror Code ou un agent codeur quand le PRD initial décrit la vision produit mais pas le détail de chaque page ajoutée au design. Modes `dry-run` (preview) et `apply` (idempotent). |
 | [`ui-kit-to-code`](ui-kit-to-code/SKILL.md) | Transformer une maquette HTML en code (React, Vue, Flutter, SwiftUI, Compose…) en lisant les conventions sémantiques pour générer du code idiomatique au lieu d'un mockup mort |
 
 Ces skills produisent des kits **machine-readable** : conventions explicites sur les attributs HTML (`data-asset`, `data-os-chrome`, `data-uses`, `data-hint`, `data-screen-label`, `data-nav-target`, `data-auto-advance`, `data-api-call`) qui permettent à n'importe quel outil de code-gen (scripts custom, agents IA) de mapper les maquettes vers du code mobile sans deviner.
@@ -21,7 +22,7 @@ Ces skills produisent des kits **machine-readable** : conventions explicites sur
 ```bash
 git clone https://github.com/kftof/ui-kit.git
 
-# 1) Copier les 7 skills
+# 1) Copier les 8 skills
 cp -r ui-kit/ui-kit-* ~/.claude/skills/
 
 # 2) Copier le dossier playbooks (consommé par creator / editor / audit)
